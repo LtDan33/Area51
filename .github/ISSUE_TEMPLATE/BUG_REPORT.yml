@@ -16,7 +16,7 @@ body:
 
        Thanks for helping Conda be amazing. We are nothing without the community 🍻
 
-    - type: checkboxes
+   - type: checkboxes
     id: checks
     attributes:
       label: Checklist
