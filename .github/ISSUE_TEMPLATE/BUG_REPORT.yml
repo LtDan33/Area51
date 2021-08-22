@@ -1,22 +1,21 @@
 name: Bug Report
 description: Create a report to help us improve
 title: "[Bug]: "
-labels: [type-bug]
+labels: [type-bug, triage]
 body:
   - type: markdown
     attributes:
       value: |
-         Thanks for taking an intrest in Conda! 🐍
+        Thanks for taking an intrest in Conda! 🐍
 
         Going through bugs and issues takes up a lot of time, so be kind to your fellow developer by taking the time to fill out all the areas to the best of your ability.
-        
+         
         There will always be more items than there is time to do them, and so we will need to selectly close bugs that don't have enough info, so we can focus our time on helping people like you who follow the process! By asking questions in a structured way (following this) it will be much easier to help you.
         
-       There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
+        There are also already a lot of open issues, so please take 2 minutes and search through existing ones to see if what you are experiencing already exists
 
-       Thanks for helping Conda be amazing. We are nothing without the community 🍻
-
-   - type: checkboxes
+        Thanks for helping Conda be amazing. We are nothing without the community 🍻
+  - type: checkboxes
     id: checks
     attributes:
       label: Checklist
@@ -67,7 +66,7 @@ body:
     attributes:
       label: Conda info
       description: |
-        Lets get the rundown of you conda setup. Run the following from your command lone and paste the output
+        Lets get the info on your conda setup. Run the following from your command line and paste the output
 
         ```bash
         conda info
