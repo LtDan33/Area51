@@ -27,9 +27,8 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: And what should have happened instead? This really helps us triage quicker and greatly increases the chance that we can get around to solve your issue
-      placeholder: Tell us what you see!
-      value: "A wild Caterpie appeared!"
+      description: What oepration was taking a long time, and how long do you think it should have taken? Are there any other comparable tools you are basing this on?
+      placeholder: I was trying to export an environment to a file. I was expecting it to be done within 60 seconds
     validations:
       required: true
   - type: textarea
@@ -37,7 +36,7 @@ body:
     attributes:
       label: Debug
       description: |
-        Let's get some debugging info by generating a conda_debug_output.txt and pasting the output
+        Let's get some info by generating a conda_debug_output.txt and pasting the output
 
         #### On unix (bash shells)
         ```sh
@@ -50,6 +49,7 @@ body:
         powershell "<your conda command> -vv | tee conda_debug_output.txt"
         ```
       render: shell
+      placeholder: Paste contents of conda_debug_output.txt here
   - type: textarea
     id: info
     attributes:
@@ -61,6 +61,7 @@ body:
         conda info
         ```
       render: shell
+      placeholder: Paste contents of conda info here
   - type: textarea
     id: config
     attributes:
@@ -72,6 +73,7 @@ body:
         conda config --show-sources
         ```
       render: shell
+      placeholder: Paste contents of `conda config --show-sources` here
   - type: textarea
     id: list
     attributes:
@@ -83,6 +85,7 @@ body:
         conda list --show-channel-urls
         ```
       render: shell
+      placeholder: Paste contents of "conda list --show-channel-urls" here
   - type: textarea
     id: context
     attributes:
