@@ -29,7 +29,7 @@ body:
     attributes:
       label: What happened?
       description: What oepration was taking a long time, and how long do you think it should have taken? Are there any other comparable tools you are basing this on?
-      placeholder: I was trying to export an environment to a file. I was expecting it to be done within 60 seconds
+      placeholder: I was trying to export an environment to a file. I was expecting it to be done within 60 seconds. Using the "conda env export --file SOME_FILE" command
     validations:
       required: true
   - type: textarea
@@ -63,6 +63,8 @@ body:
         ```
       render: shell
       placeholder: Paste contents of "conda info" here
+      validations:
+        required: true
   - type: textarea
     id: config
     attributes:
@@ -75,6 +77,8 @@ body:
         ```
       render: shell
       placeholder: Paste contents of "conda config --show-sources" here
+      validations:
+        required: true
   - type: textarea
     id: list
     attributes:
@@ -87,6 +91,8 @@ body:
         ```
       render: shell
       placeholder: Paste contents of "conda list --show-channel-urls" here
+      validations:
+        required: true
   - type: textarea
     id: context
     attributes:
