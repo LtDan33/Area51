@@ -1,5 +1,6 @@
-name: Speed Issue
-description: If you think Conda is going slow
+name: Speed Improvement
+description: If you think Conda could be faster
+label: type-speed_improvement
 body:
   - type: markdown
     attributes:
@@ -61,7 +62,7 @@ body:
         conda info
         ```
       render: shell
-      placeholder: Paste contents of conda info here
+      placeholder: Paste contents of "conda info" here
   - type: textarea
     id: config
     attributes:
@@ -73,7 +74,7 @@ body:
         conda config --show-sources
         ```
       render: shell
-      placeholder: Paste contents of `conda config --show-sources` here
+      placeholder: Paste contents of "conda config --show-sources" here
   - type: textarea
     id: list
     attributes:
