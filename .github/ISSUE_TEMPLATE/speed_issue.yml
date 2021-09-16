@@ -39,15 +39,15 @@ body:
       description: |
         Let's get some info by generating a conda_debug_output.txt and pasting the output
 
-        #### On unix (bash shells)
+        #### On unix (bash shell)
         ```sh
         CONDA_INSTRUMENTATION_ENABLED=1 <your conda command> -vv | tee conda_debug_output.txt
         ```
 
-        #### On Windows
+        #### On Windows (powershell)
         ```sh
         set CONDA_INSTRUMENTATION_ENABLED=1
-        powershell "<your conda command> -vv | tee conda_debug_output.txt"
+        <your conda command> -vv | tee conda_debug_output.txt
         ```
       render: shell
       placeholder: Paste contents of conda_debug_output.txt here
