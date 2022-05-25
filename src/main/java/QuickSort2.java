@@ -1,7 +1,7 @@
 /**
  * Created by Dan on 01/25/17.
  */
-public class quickSort {
+public class QuickSort2 {
 
     public void sort(int[] nums, int left, int right){
 

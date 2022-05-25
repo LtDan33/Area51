@@ -1,4 +1,4 @@
-import LeetCode.four53;
+package ScratchPad;
 
 /**
  * Created by Dan on 03/13/17.
