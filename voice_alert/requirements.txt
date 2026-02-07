@@ -1,0 +1,16 @@
+# Pick the backend(s) you want. You only need ONE of these groups.
+
+# --- Option 1: ElevenLabs (best voices, free tier 10k chars/month) ---
+# elevenlabs
+
+# --- Option 2: OpenAI TTS (very cheap ~$0.015/1K chars, great voices) ---
+# openai
+
+# --- Option 3: edge-tts (completely FREE, good Microsoft Neural voices) ---
+# edge-tts
+
+# --- Option 4: pyttsx3 (offline, uses built-in Windows SAPI voices) ---
+# pyttsx3
+
+# --- Audio playback (optional, improves reliability on Windows) ---
+# playsound

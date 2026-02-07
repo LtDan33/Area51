@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": {
+          "tool_name": "TodoWrite"
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python voice_alert/notify.py"
+          }
+        ]
+      }
+    ]
+  }
+}
