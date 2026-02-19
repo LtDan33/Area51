@@ -1,0 +1,17 @@
+[project]
+name = "sports-superstition-tracker"
+version = "0.1.0"
+description = "Track your superstitions during live sports and see if they actually work"
+authors = [
+    {name = "Area51"}
+]
+requires-python = "^3.11"
+dependencies = [
+    "fastapi (>=0.128.1,<0.129.0)",
+    "uvicorn[standard] (>=0.40.0,<0.41.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
