@@ -3,7 +3,7 @@ import json
 import random
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -20,7 +20,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @dataclass
 class GameEvent:
-    timestamp: float  # server time
+    timestamp: float
     team: str  # "red" or "blue"
     points: int  # 2 or 3
     red_score: int
@@ -30,13 +30,24 @@ class GameEvent:
 
 
 @dataclass
+class ScoreBreakdown:
+    """What a single click earned when a basket happened."""
+    player_id: str
+    player_name: str
+    action: str
+    points: float
+    basket_team: str
+    gap_seconds: float
+
+
+@dataclass
 class SuperstitionClick:
     player_id: str
     player_name: str
     action: str
     timestamp: float
-    team: str  # which team they're rooting for
-    scored: bool = False  # True once this click has been scored by a basket
+    team: str
+    scored: bool = False
 
 
 @dataclass
@@ -46,45 +57,46 @@ class Player:
     team: str
     magic_score: float = 0.0
     clicks: int = 0
+    last_click_time: dict = field(default_factory=dict)  # action_id -> timestamp
 
 
 # --- Scoring engine ---
 
+CLICK_COOLDOWN = 3.0  # seconds before same action can be clicked again
+
 def compute_correlation_score(seconds_gap: float, positive: bool) -> float:
-    """Sliding scale: 0s -> 10 pts, 10s -> 1 pt, >10s -> 0.
-    Linear interpolation between those bounds.
-    Negative events invert the sign."""
+    """Sliding scale: 0s -> 10 pts, 10s -> 1 pt, >10s -> 0."""
     if seconds_gap > 10.0 or seconds_gap < 0:
         return 0.0
-    # 10 at 0s, 1 at 10s  =>  score = 10 - 0.9*gap
     raw = 10.0 - 0.9 * seconds_gap
-    return raw if positive else -raw
+    return round(raw, 1) if positive else round(-raw, 1)
 
 
-# --- Game state (in-memory, single instance for demo) ---
+# --- Game state ---
 
 SUPERSTITIONS = [
-    {"id": "cap", "label": "Turn Cap Around"},
-    {"id": "beer", "label": "Take a Sip of Beer"},
-    {"id": "stand", "label": "Stand Up"},
-    {"id": "clap", "label": "Clap Three Times"},
-    {"id": "cross", "label": "Cross Fingers"},
-    {"id": "blow", "label": "Blow on the Screen"},
+    {"id": "cap", "label": "Turn Cap Around", "emoji": "🧢"},
+    {"id": "beer", "label": "Take a Sip", "emoji": "🍺"},
+    {"id": "stand", "label": "Stand Up", "emoji": "🧍"},
+    {"id": "clap", "label": "Clap 3 Times", "emoji": "👏"},
+    {"id": "cross", "label": "Cross Fingers", "emoji": "🤞"},
+    {"id": "blow", "label": "Blow on Screen", "emoji": "💨"},
 ]
 
-# Quarter length in simulated seconds (real-time seconds for demo)
-QUARTER_SECONDS = 120  # 2 minutes real-time per quarter
-SCORING_INTERVAL_MIN = 4  # min seconds between baskets
-SCORING_INTERVAL_MAX = 12  # max seconds between baskets
+SUPERSTITION_MAP = {s["id"]: s for s in SUPERSTITIONS}
+
+QUARTER_SECONDS = 120  # 2 min real-time per quarter
+SCORING_INTERVAL_MIN = 4
+SCORING_INTERVAL_MAX = 12
 
 
 class GameState:
     def __init__(self):
         self.players: dict[str, Player] = {}
+        self.activity_log: list[dict] = []  # recent activity for the feed
         self.reset()
 
     def reset(self):
-        """Reset game state for a new game. Preserves player roster but resets scores."""
         self.red_score = 0
         self.blue_score = 0
         self.quarter = 1
@@ -96,38 +108,52 @@ class GameState:
         self.running = False
         self.finished = False
         self.next_basket_in: float = random.uniform(SCORING_INTERVAL_MIN, SCORING_INTERVAL_MAX)
-        # Reset player scores but keep them registered
+        self.activity_log = []
         for player in self.players.values():
             player.magic_score = 0.0
             player.clicks = 0
+            player.last_click_time = {}
 
     def format_clock(self) -> str:
         m = int(self.clock_seconds) // 60
         s = int(self.clock_seconds) % 60
         return f"{m}:{s:02d}"
 
-    def score_event(self, event: GameEvent):
-        """After a basket, look back at recent unscored clicks and award/deduct points."""
+    def add_activity(self, entry: dict):
+        self.activity_log.append(entry)
+        if len(self.activity_log) > 50:
+            self.activity_log = self.activity_log[-50:]
+
+    def score_event(self, event: GameEvent) -> list[ScoreBreakdown]:
+        """Score clicks against a basket. Returns per-player breakdown."""
         now = event.timestamp
+        breakdowns: list[ScoreBreakdown] = []
         for click in self.clicks:
             if click.scored:
                 continue
             gap = now - click.timestamp
             if gap < 0 or gap > 10:
                 continue
-            # positive if click's team matches scoring team
             positive = click.team == event.team
             pts = compute_correlation_score(gap, positive)
             if pts == 0:
                 continue
-            click.scored = True  # each click only counts for one basket
+            click.scored = True
             player = self.players.get(click.player_id)
             if player:
                 player.magic_score += pts
             self.action_scores[click.action] += pts
-        # prune old scored clicks (older than 15s)
+            breakdowns.append(ScoreBreakdown(
+                player_id=click.player_id,
+                player_name=click.player_name,
+                action=click.action,
+                points=pts,
+                basket_team=event.team,
+                gap_seconds=round(gap, 1),
+            ))
         cutoff = now - 15.0
         self.clicks = [c for c in self.clicks if c.timestamp > cutoff]
+        return breakdowns
 
 
 game = GameState()
@@ -162,43 +188,38 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-async def send_full_state(ws: WebSocket):
-    """Send entire game state to a newly connected client."""
-    await ws.send_text(json.dumps(build_state_message()))
-
-
 def build_state_message(msg_type: str = "state", **extra) -> dict:
-    """Build a state message. Extra fields are added, and msg_type sets the type.
-
-    IMPORTANT: msg_type is applied last so it cannot be overwritten by spread."""
     top_players = sorted(game.players.values(), key=lambda p: p.magic_score, reverse=True)[:10]
     top_actions = sorted(
         [(aid, game.action_scores[aid], game.action_counts[aid]) for aid in game.action_scores],
         key=lambda x: x[1],
         reverse=True,
     )
-    recent_events = game.events[-15:]  # last 15 baskets
+    recent_events = game.events[-15:]
     msg = {
         "type": msg_type,
         "red_score": game.red_score,
         "blue_score": game.blue_score,
         "quarter": game.quarter,
         "clock": game.format_clock(),
+        "clock_seconds": game.clock_seconds,
         "running": game.running,
         "finished": game.finished,
         "leaderboard": [
-            {"name": p.name, "team": p.team, "score": round(p.magic_score, 1), "clicks": p.clicks}
+            {"id": p.id, "name": p.name, "team": p.team,
+             "score": round(p.magic_score, 1), "clicks": p.clicks}
             for p in top_players
         ],
         "actions": [
             {"id": a[0], "score": round(a[1], 1), "count": a[2]}
             for a in top_actions
         ],
-        "events": [
+        "game_events": [
             {"team": e.team, "points": e.points, "red": e.red_score, "blue": e.blue_score,
              "quarter": e.quarter, "clock": e.clock}
             for e in recent_events
         ],
+        "activity": game.activity_log[-20:],
     }
     msg.update(extra)
     return msg
@@ -209,12 +230,17 @@ def build_state_message(msg_type: str = "state", **extra) -> dict:
 async def run_game():
     game.reset()
     game.running = True
+    game.add_activity({"kind": "system", "text": "Game started!"})
     await manager.broadcast(build_state_message())
 
-    for q in range(1, 5):  # 4 quarters
+    for q in range(1, 5):
         game.quarter = q
         game.clock_seconds = QUARTER_SECONDS
         game.next_basket_in = random.uniform(SCORING_INTERVAL_MIN, SCORING_INTERVAL_MAX)
+
+        quarter_label = "Halftime" if q == 3 else f"Quarter {q}"
+        if q > 1:
+            game.add_activity({"kind": "system", "text": f"{quarter_label} begins"})
         await manager.broadcast(build_state_message())
 
         while game.clock_seconds > 0:
@@ -223,7 +249,6 @@ async def run_game():
             game.next_basket_in -= 1
 
             if game.next_basket_in <= 0:
-                # a basket happens
                 team = random.choice(["red", "blue"])
                 pts = random.choices([2, 3], weights=[75, 25])[0]
                 if team == "red":
@@ -241,23 +266,41 @@ async def run_game():
                     clock=game.format_clock(),
                 )
                 game.events.append(evt)
-                game.score_event(evt)
+                breakdowns = game.score_event(evt)
                 game.next_basket_in = random.uniform(SCORING_INTERVAL_MIN, SCORING_INTERVAL_MAX)
 
+                team_name = "Red" if team == "red" else "Blue"
+                game.add_activity({
+                    "kind": "basket",
+                    "team": team,
+                    "text": f"{team_name} scores +{pts}! ({game.red_score}-{game.blue_score})",
+                })
+
                 await manager.broadcast(build_state_message(
-                    "basket", team=team, points=pts,
+                    "basket",
+                    basket_team=team,
+                    basket_points=pts,
+                    scoring_breakdowns=[
+                        {"player_id": b.player_id, "player_name": b.player_name,
+                         "action": b.action, "points": b.points,
+                         "gap": b.gap_seconds}
+                        for b in breakdowns
+                    ],
                 ))
             elif int(game.clock_seconds) % 5 == 0:
-                # periodic clock update every 5s
                 await manager.broadcast(build_state_message())
 
-        # quarter break
+        # Quarter break
         if q < 4:
-            await manager.broadcast(build_state_message("quarter_end"))
-            await asyncio.sleep(3)
+            label = "Halftime" if q == 2 else f"End of Q{q}"
+            game.add_activity({"kind": "system", "text": label})
+            await manager.broadcast(build_state_message("quarter_break", break_label=label))
+            await asyncio.sleep(5)
 
     game.running = False
     game.finished = True
+    winner = "Red" if game.red_score > game.blue_score else "Blue" if game.blue_score > game.red_score else "Tie"
+    game.add_activity({"kind": "system", "text": f"Game over! {winner} wins!" if winner != "Tie" else "Game over! It's a tie!"})
     await manager.broadcast(build_state_message("game_over"))
 
 
@@ -283,41 +326,73 @@ async def start_game():
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
-    await send_full_state(ws)
+    await ws.send_text(json.dumps(build_state_message()))
     try:
         while True:
             raw = await ws.receive_text()
             data = json.loads(raw)
 
             if data.get("type") == "register":
-                pid = data.get("player_id")  # allow reconnecting with existing id
+                pid = data.get("player_id")
                 if not pid or pid not in game.players:
                     pid = str(uuid.uuid4())[:8]
                 name = data.get("name", "Anon")[:20]
                 team = data.get("team", "red")
                 if pid not in game.players:
                     game.players[pid] = Player(id=pid, name=name, team=team)
-                await ws.send_text(json.dumps({"type": "registered", "player_id": pid}))
+                    game.add_activity({"kind": "join", "text": f"{name} joined {team.title()} Team"})
+                await ws.send_text(json.dumps({
+                    "type": "registered",
+                    "player_id": pid,
+                    "player_name": game.players[pid].name,
+                    "player_team": game.players[pid].team,
+                }))
                 await manager.broadcast(build_state_message())
 
             elif data.get("type") == "click":
                 pid = data.get("player_id", "")
                 action = data.get("action", "")
-                if pid in game.players and action in game.action_scores and game.running:
-                    click = SuperstitionClick(
-                        player_id=pid,
-                        player_name=game.players[pid].name,
-                        action=action,
-                        timestamp=time.time(),
-                        team=game.players[pid].team,
-                    )
-                    game.clicks.append(click)
-                    game.players[pid].clicks += 1
-                    game.action_counts[action] += 1
-                    await manager.broadcast(build_state_message(
-                        "click_ack",
-                        player=game.players[pid].name,
-                        action=action,
-                    ))
+                player = game.players.get(pid)
+                if not player or action not in game.action_scores or not game.running:
+                    continue
+
+                # Cooldown check
+                now = time.time()
+                last = player.last_click_time.get(action, 0)
+                if now - last < CLICK_COOLDOWN:
+                    remaining = round(CLICK_COOLDOWN - (now - last), 1)
+                    await ws.send_text(json.dumps({
+                        "type": "cooldown",
+                        "action": action,
+                        "remaining": remaining,
+                    }))
+                    continue
+
+                player.last_click_time[action] = now
+                click = SuperstitionClick(
+                    player_id=pid,
+                    player_name=player.name,
+                    action=action,
+                    timestamp=now,
+                    team=player.team,
+                )
+                game.clicks.append(click)
+                player.clicks += 1
+                game.action_counts[action] += 1
+
+                label = SUPERSTITION_MAP[action]["label"]
+                emoji = SUPERSTITION_MAP[action]["emoji"]
+                game.add_activity({
+                    "kind": "click",
+                    "team": player.team,
+                    "text": f"{emoji} {player.name} — {label}",
+                })
+
+                await manager.broadcast(build_state_message(
+                    "click_ack",
+                    click_player=player.name,
+                    click_action=action,
+                    click_team=player.team,
+                ))
     except WebSocketDisconnect:
         manager.disconnect(ws)
