@@ -2,305 +2,473 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111113">
 <title>Superstition Tracker</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #111113;
+    --surface: #1a1a1d;
+    --surface-2: #222226;
+    --border: #2a2a2e;
+    --border-light: #333338;
+    --text: #e8e8ec;
+    --text-2: #a0a0a8;
+    --text-3: #606068;
+    --text-4: #40404a;
+    --red: #ff6b6b;
+    --red-dim: #ff888a;
+    --red-bg: #201214;
+    --red-border: #3a1a1e;
+    --blue: #6b9bff;
+    --blue-dim: #8aafff;
+    --blue-bg: #121620;
+    --blue-border: #1a253a;
+    --positive: #5cdb5c;
+    --positive-bg: #0f1f0f;
+    --positive-border: #1a3a1a;
+    --negative: #ff5c5c;
+    --negative-bg: #1f0f0f;
+    --negative-border: #3a1a1a;
+    --warn: #ccaa44;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: #0f0f0f;
-    color: #e0e0e0;
-    min-height: 100vh;
+    background: var(--bg);
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
+  button { font-family: inherit; }
+  input { font-family: inherit; }
 
-  /* --- Layout --- */
-  .container {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    min-height: 100vh;
-  }
-  .main { padding: 20px 32px; }
-  .sidebar {
-    background: #161616;
-    border-left: 1px solid #222;
-    padding: 20px;
-    overflow-y: auto;
-    max-height: 100vh;
-    position: sticky;
-    top: 0;
-  }
-
-  /* --- Join screen --- */
+  /* ====== JOIN SCREEN ====== */
   #join-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 80vh;
-    gap: 20px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100dvh;
+    padding: 24px 20px;
+    padding-top: calc(24px + var(--safe-top));
+    gap: 16px;
   }
-  #join-screen h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
-  #join-screen .subtitle { color: #666; font-size: 15px; margin-bottom: 8px; max-width: 360px; text-align: center; line-height: 1.5; }
-  #join-screen input {
-    background: #1a1a1a; border: 1px solid #333; color: #e0e0e0;
-    padding: 14px 18px; border-radius: 10px; font-size: 16px;
-    width: 300px; outline: none;
+  .join-title {
+    font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+    margin-bottom: 2px;
   }
-  #join-screen input:focus { border-color: #555; }
-  .team-pick { display: flex; gap: 12px; }
+  .join-sub {
+    color: var(--text-3); font-size: 14px; line-height: 1.5;
+    text-align: center; max-width: 300px; margin-bottom: 8px;
+  }
+  .join-input {
+    width: 100%; max-width: 320px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 14px 16px;
+    border-radius: var(--radius-sm); font-size: 16px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .join-input:focus { border-color: var(--border-light); }
+  .team-pick { display: flex; gap: 10px; width: 100%; max-width: 320px; }
   .team-btn {
-    padding: 14px 36px; border-radius: 10px; border: 2px solid transparent;
-    font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    flex: 1; padding: 14px 0; border-radius: var(--radius-sm);
+    border: 2px solid transparent; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .team-btn.red { background: #2a1010; color: #ff6b6b; border-color: #401515; }
-  .team-btn.red:hover, .team-btn.red.active { background: #401515; border-color: #ff6b6b; }
-  .team-btn.blue { background: #101025; color: #6b9bff; border-color: #151540; }
-  .team-btn.blue:hover, .team-btn.blue.active { background: #151540; border-color: #6b9bff; }
-  .join-go {
-    padding: 14px 56px; border-radius: 10px; border: none;
-    background: #e0e0e0; color: #111; font-size: 16px; font-weight: 600;
+  .team-btn.red { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .team-btn.red.active { border-color: var(--red); background: #2d181a; }
+  .team-btn.blue { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+  .team-btn.blue.active { border-color: var(--blue); background: #161c2d; }
+  .join-submit {
+    width: 100%; max-width: 320px;
+    padding: 15px 0; border-radius: var(--radius-sm); border: none;
+    background: var(--text); color: var(--bg); font-size: 16px; font-weight: 600;
     cursor: pointer; margin-top: 4px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .join-go:hover { background: #fff; }
+  .join-submit:active { transform: scale(0.98); opacity: 0.9; }
 
-  /* --- Scoreboard --- */
+  /* ====== GAME SCREEN ====== */
+  #game-screen { display: none; }
+
+  /* --- Sticky Header: Scoreboard + Status --- */
+  .sticky-header {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--bg);
+    padding-top: var(--safe-top);
+    border-bottom: 1px solid var(--border);
+  }
   .scoreboard {
     display: flex; align-items: center; justify-content: center;
-    gap: 32px; padding: 16px 0 12px;
+    gap: 20px; padding: 12px 16px 8px;
   }
-  .team-block { text-align: center; min-width: 100px; }
-  .team-block .label {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1.5px; margin-bottom: 2px;
+  .sb-team { text-align: center; min-width: 64px; }
+  .sb-team-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 1px;
   }
-  .team-block .label.red { color: #ff6b6b; }
-  .team-block .label.blue { color: #6b9bff; }
-  .team-block .score-num {
-    font-size: 52px; font-weight: 800; font-variant-numeric: tabular-nums;
-    transition: transform 0.2s, color 0.2s;
+  .sb-team-label.red { color: var(--red); }
+  .sb-team-label.blue { color: var(--blue); }
+  .sb-team-num {
+    font-size: 36px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
   }
-  .game-center { text-align: center; min-width: 90px; }
-  .game-center .quarter-label {
-    font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1.5px;
+  .sb-mid { text-align: center; min-width: 56px; }
+  .sb-quarter {
+    font-size: 10px; color: var(--text-3); text-transform: uppercase;
+    letter-spacing: 1.5px; font-weight: 600;
   }
-  .game-center .clock {
-    font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px;
+  .sb-clock {
+    font-size: 20px; font-weight: 700;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
   }
 
-  /* --- Your status bar --- */
-  .your-status {
+  /* --- Status strip --- */
+  .status-strip {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; border-radius: 10px; margin: 8px 0 4px;
-    font-size: 13px;
+    padding: 8px 16px 10px; font-size: 12px;
   }
-  .your-status.red { background: #1a1010; border: 1px solid #2a1515; }
-  .your-status.blue { background: #10101a; border: 1px solid #15152a; }
-  .your-status .your-team-badge {
-    font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+  .status-team {
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 10px;
   }
-  .your-status .your-team-badge.red { color: #ff6b6b; }
-  .your-status .your-team-badge.blue { color: #6b9bff; }
-  .your-status .your-magic { font-weight: 700; font-size: 15px; }
-  .your-status .your-magic.positive { color: #7bff7b; }
-  .your-status .your-magic.negative { color: #ff6b6b; }
-  .your-status .your-magic.zero { color: #555; }
+  .status-team.red { color: var(--red); }
+  .status-team.blue { color: var(--blue); }
+  .status-info { color: var(--text-3); }
+  .status-magic { font-weight: 700; font-size: 13px; }
+  .status-magic.pos { color: var(--positive); }
+  .status-magic.neg { color: var(--negative); }
+  .status-magic.zero { color: var(--text-4); }
 
-  /* --- Quarter break overlay --- */
-  .quarter-break-banner {
-    text-align: center; padding: 20px; margin: 12px 0;
-    background: #1a1a2a; border-radius: 12px; border: 1px solid #2a2a3a;
+  /* --- Main content --- */
+  .game-body {
+    padding: 12px 16px;
+    padding-left: calc(16px + var(--safe-left));
+    padding-right: calc(16px + var(--safe-right));
+    padding-bottom: calc(16px + var(--safe-bottom));
   }
-  .quarter-break-banner h2 { font-size: 20px; color: #aab; }
-  .quarter-break-banner p { color: #666; font-size: 13px; margin-top: 4px; }
 
-  /* --- Start button --- */
-  .start-bar { text-align: center; padding: 16px 0; }
+  /* --- Start / break / game-over --- */
+  .start-bar { text-align: center; padding: 12px 0 8px; }
   .start-btn {
-    padding: 14px 48px; border-radius: 10px; border: none;
-    background: #2a7a2a; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+    width: 100%; max-width: 400px;
+    padding: 15px 0; border-radius: var(--radius-sm); border: none;
+    background: #1f6b1f; color: #c0f0c0; font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .start-btn:hover { background: #3a9a3a; }
-  .start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .start-btn:active { transform: scale(0.98); }
+  .start-btn:disabled { opacity: 0.35; cursor: default; }
 
-  /* --- Superstition buttons --- */
+  .break-banner {
+    text-align: center; padding: 20px 16px; margin: 8px 0;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .break-banner h2 { font-size: 18px; font-weight: 700; color: var(--text-2); }
+  .break-banner p { color: var(--text-3); font-size: 13px; margin-top: 4px; }
+
+  .game-over-banner {
+    text-align: center; padding: 24px 16px; margin: 8px 0;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .game-over-banner h2 { font-size: 20px; font-weight: 700; }
+  .game-over-banner p { color: var(--text-3); font-size: 13px; margin-top: 6px; }
+
+  /* ====== ACTION BUTTONS ====== */
   .section-label {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 2px; color: #555; margin: 20px 0 10px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--text-4); margin: 12px 0 8px;
   }
-  .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .actions {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
   .action-btn {
-    position: relative;
-    padding: 18px 10px 14px; border-radius: 12px;
-    border: 1px solid #222; background: #161616;
-    color: #aaa; font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: all 0.12s;
+    position: relative; overflow: hidden;
+    min-height: 72px;
+    padding: 14px 8px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-2); font-size: 12px; font-weight: 500;
+    cursor: pointer;
     text-align: center; line-height: 1.3;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
+    -webkit-user-select: none; user-select: none;
   }
-  .action-btn .emoji { font-size: 22px; }
-  .action-btn:hover { background: #1e1e1e; border-color: #3a3a3a; color: #fff; }
-  .action-btn:active { transform: scale(0.95); }
-  .action-btn.clicked { background: #152515; border-color: #2a5a2a; color: #7bff7b; }
-  .action-btn:disabled { opacity: 0.25; cursor: not-allowed; }
-  .action-btn .cooldown-bar {
+  .action-btn .emoji { font-size: 26px; line-height: 1; }
+  .action-btn:active:not(:disabled) {
+    transform: scale(0.94);
+    background: var(--surface-2);
+  }
+  .action-btn.clicked {
+    background: var(--positive-bg); border-color: var(--positive-border);
+    color: var(--positive);
+  }
+  .action-btn:disabled { opacity: 0.2; cursor: default; }
+  .action-btn .cd-bar {
     position: absolute; bottom: 0; left: 0; height: 3px;
-    background: #555; border-radius: 0 0 12px 12px;
+    background: var(--text-3);
+    border-radius: 0 0 var(--radius) var(--radius);
     transition: width 0.1s linear;
   }
 
   /* --- How it works --- */
   .how-toggle {
-    font-size: 12px; color: #555; cursor: pointer; margin: 16px 0 4px;
-    user-select: none;
+    font-size: 12px; color: var(--text-4); cursor: pointer;
+    margin: 14px 0 4px; user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .how-toggle:hover { color: #888; }
-  .how-content {
-    font-size: 12px; color: #555; line-height: 1.7; padding: 8px 0;
-    display: none;
+  .how-body {
+    font-size: 12px; color: var(--text-3); line-height: 1.7;
+    padding: 6px 0 0; display: none;
   }
-  .how-content.open { display: block; }
+  .how-body.open { display: block; }
 
-  /* --- Toast notifications --- */
-  .toast-container {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  /* ====== TABS (mobile) ====== */
+  .tabs {
+    display: flex; gap: 0; margin: 16px 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1; padding: 10px 0; background: none; border: none;
+    color: var(--text-4); font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; position: relative;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: color 0.15s;
+  }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn.active::after {
+    content: ''; position: absolute; bottom: -1px; left: 16%; right: 16%;
+    height: 2px; background: var(--text); border-radius: 1px;
+  }
+  .tab-panel { display: none; padding: 4px 0; }
+  .tab-panel.active { display: block; }
+
+  /* ====== LEADERBOARD ====== */
+  .lb-row {
+    display: flex; align-items: center;
+    padding: 7px 0; font-size: 13px;
+  }
+  .lb-rank { width: 24px; color: var(--text-4); font-weight: 700; font-size: 12px; }
+  .lb-name { flex: 1; font-weight: 500; color: var(--text-2); }
+  .lb-name.red { color: var(--red-dim); }
+  .lb-name.blue { color: var(--blue-dim); }
+  .lb-name.you { font-weight: 700; color: var(--text); }
+  .lb-pts {
+    font-weight: 700; font-variant-numeric: tabular-nums;
+    min-width: 50px; text-align: right; font-size: 13px;
+  }
+  .lb-pts.pos { color: var(--positive); }
+  .lb-pts.neg { color: var(--negative); }
+  .lb-pts.zero { color: var(--text-4); }
+  .lb-ct { color: var(--text-4); font-size: 11px; min-width: 32px; text-align: right; }
+
+  /* ====== BEST SUPERSTITIONS ====== */
+  .sub-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-4); margin: 14px 0 6px;
+  }
+  .as-row {
+    display: flex; align-items: center; padding: 5px 0; font-size: 13px;
+  }
+  .as-label { flex: 1; color: var(--text-3); }
+  .as-val {
+    font-weight: 600; min-width: 50px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .as-val.pos { color: var(--positive); }
+  .as-val.neg { color: var(--negative); }
+  .as-val.zero { color: var(--text-4); }
+  .as-ct { color: var(--text-4); font-size: 11px; min-width: 32px; text-align: right; }
+
+  /* ====== ACTIVITY FEED ====== */
+  .feed-item {
+    padding: 5px 0; font-size: 12px; color: var(--text-3);
+    line-height: 1.4;
+  }
+  .feed-item.basket { color: var(--text-2); font-weight: 500; }
+  .feed-item .dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; margin-right: 5px; vertical-align: middle;
+  }
+  .feed-item .dot.red { background: var(--red); }
+  .feed-item .dot.blue { background: var(--blue); }
+  .feed-item.click { color: var(--text-3); }
+  .feed-item.system { color: var(--text-4); font-style: italic; }
+  .feed-item.join { color: var(--text-4); }
+  .feed-empty { color: var(--text-4); font-size: 12px; }
+
+  /* ====== TOASTS ====== */
+  .toast-zone {
+    position: fixed; top: calc(8px + var(--safe-top));
+    left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 6px;
-    z-index: 100; pointer-events: none;
+    z-index: 200; pointer-events: none;
+    width: 90%; max-width: 360px;
   }
   .toast {
-    padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
-    animation: toastIn 0.25s ease-out, toastOut 0.3s ease-in 2.2s forwards;
-    white-space: nowrap;
+    padding: 10px 18px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600;
+    animation: tIn 0.2s ease-out, tOut 0.3s ease-in 2s forwards;
+    text-align: center;
   }
-  .toast.positive { background: #1a3a1a; color: #7bff7b; border: 1px solid #2a5a2a; }
-  .toast.negative { background: #3a1a1a; color: #ff7b7b; border: 1px solid #5a2a2a; }
-  .toast.info { background: #1a2a3a; color: #7bb8ff; border: 1px solid #2a3a5a; }
-  .toast.cooldown-toast { background: #2a2a1a; color: #ccaa55; border: 1px solid #4a4a2a; }
-  @keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+  .toast.positive { background: var(--positive-bg); color: var(--positive); border: 1px solid var(--positive-border); }
+  .toast.negative { background: var(--negative-bg); color: var(--negative); border: 1px solid var(--negative-border); }
+  .toast.info { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+  .toast.cooldown-toast { background: #1f1d12; color: var(--warn); border: 1px solid #3a351a; }
+  @keyframes tIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes tOut { from { opacity:1; } to { opacity:0; transform:translateY(-8px); } }
 
-  /* --- Game over --- */
-  .game-over-banner {
-    text-align: center; padding: 24px; margin: 16px 0;
-    background: #1a1a2a; border-radius: 12px; border: 1px solid #333;
+  /* ====== DESKTOP ENHANCEMENT ====== */
+  @media (min-width: 769px) {
+    .sticky-header { position: static; border-bottom: none; padding-top: 0; }
+    .scoreboard { padding: 20px 0 12px; gap: 32px; }
+    .sb-team-num { font-size: 48px; }
+    .sb-clock { font-size: 24px; }
+
+    #game-screen {
+      display: none; /* JS toggles to grid */
+    }
+    #game-screen.visible {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      grid-template-rows: auto 1fr;
+      min-height: 100dvh;
+    }
+    .sticky-header { grid-column: 1; }
+    .game-body { grid-column: 1; padding: 0 32px 32px; }
+    .desktop-sidebar {
+      display: block;
+      grid-column: 2; grid-row: 1 / -1;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto; max-height: 100dvh;
+      position: sticky; top: 0;
+    }
+    .tabs { display: none; }
+    .tab-panel { display: block; padding: 0; }
+    .tab-panel + .tab-panel { margin-top: 20px; }
+    .actions { grid-template-columns: repeat(3, 1fr); }
+    .action-btn { min-height: 80px; }
+    .action-btn .emoji { font-size: 28px; }
+    .join-title { font-size: 32px; }
+    .start-btn { max-width: 280px; width: auto; padding: 15px 48px; }
   }
-  .game-over-banner h2 { font-size: 24px; margin-bottom: 6px; }
-  .game-over-banner p { color: #888; font-size: 14px; }
-  .game-over-banner .final-score { font-size: 13px; color: #666; margin-top: 8px; }
 
-  /* --- Sidebar sections --- */
-  .sb-title {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1.5px; color: #555; margin-bottom: 8px;
-    padding-bottom: 8px; border-bottom: 1px solid #1e1e1e;
-  }
-  .sb-section { margin-bottom: 20px; }
-  .lb-row { display: flex; align-items: center; padding: 5px 0; font-size: 13px; }
-  .lb-rank { width: 22px; color: #444; font-weight: 700; }
-  .lb-name { flex: 1; font-weight: 500; }
-  .lb-name.red { color: #ff8888; }
-  .lb-name.blue { color: #88aaff; }
-  .lb-name.you { text-decoration: underline; text-decoration-color: #555; text-underline-offset: 2px; }
-  .lb-score { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
-  .lb-score.positive { color: #7bff7b; }
-  .lb-score.negative { color: #ff6b6b; }
-  .lb-score.zero { color: #444; }
-  .lb-clicks { color: #444; font-size: 11px; min-width: 36px; text-align: right; }
-
-  .action-row { display: flex; align-items: center; padding: 4px 0; font-size: 13px; }
-  .action-label { flex: 1; color: #888; }
-  .action-val { font-weight: 600; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
-  .action-val.positive { color: #7bff7b; }
-  .action-val.negative { color: #ff6b6b; }
-  .action-val.zero { color: #333; }
-  .action-count { color: #444; font-size: 11px; min-width: 34px; text-align: right; }
-
-  /* --- Activity feed --- */
-  .feed-item { padding: 4px 0; font-size: 12px; color: #555; line-height: 1.4; }
-  .feed-item.basket { color: #999; font-weight: 500; }
-  .feed-item.basket .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
-  .feed-item.basket .dot.red { background: #ff6b6b; }
-  .feed-item.basket .dot.blue { background: #6b9bff; }
-  .feed-item.click { color: #666; }
-  .feed-item.system { color: #555; font-style: italic; }
-  .feed-item.join { color: #4a5a4a; }
-  .feed-empty { color: #333; font-size: 12px; font-style: italic; }
-
-  @media (max-width: 768px) {
-    .container { grid-template-columns: 1fr; }
-    .sidebar { position: static; max-height: none; border-left: none; border-top: 1px solid #222; }
-    .actions { grid-template-columns: repeat(2, 1fr); }
-  }
+  /* Hide desktop sidebar on mobile */
+  .desktop-sidebar { display: none; }
 </style>
 </head>
 <body>
 
-<div class="toast-container" id="toasts"></div>
+<div class="toast-zone" id="toasts"></div>
 
-<div class="container">
-  <div class="main">
-    <!-- Join -->
-    <div id="join-screen">
-      <h1>Superstition Tracker</h1>
-      <p class="subtitle">Click your superstitions during a live game. See if your rituals actually affect the score.</p>
-      <input type="text" id="name-input" placeholder="Your name" maxlength="20" />
-      <div class="team-pick">
-        <button class="team-btn red active" onclick="pickTeam('red')">Red Team</button>
-        <button class="team-btn blue" onclick="pickTeam('blue')">Blue Team</button>
+<!-- ====== JOIN ====== -->
+<div id="join-screen">
+  <div class="join-title">Superstition Tracker</div>
+  <p class="join-sub">Click your superstitions during a live game. See if your rituals actually affect the score.</p>
+  <input class="join-input" type="text" id="name-input" placeholder="Your name" maxlength="20" enterkeyhint="go" />
+  <div class="team-pick">
+    <button class="team-btn red active" onclick="pickTeam('red')">Red Team</button>
+    <button class="team-btn blue" onclick="pickTeam('blue')">Blue Team</button>
+  </div>
+  <button class="join-submit" onclick="joinGame()">Join Game</button>
+</div>
+
+<!-- ====== GAME ====== -->
+<div id="game-screen">
+  <div class="sticky-header">
+    <div class="scoreboard">
+      <div class="sb-team">
+        <div class="sb-team-label red">Red</div>
+        <div class="sb-team-num" id="red-score">0</div>
       </div>
-      <button class="join-go" onclick="joinGame()">Join</button>
+      <div class="sb-mid">
+        <div class="sb-quarter" id="quarter">Q1</div>
+        <div class="sb-clock" id="clock">2:00</div>
+      </div>
+      <div class="sb-team">
+        <div class="sb-team-label blue">Blue</div>
+        <div class="sb-team-num" id="blue-score">0</div>
+      </div>
     </div>
-
-    <!-- Game -->
-    <div id="game-screen" style="display:none">
-      <div class="scoreboard">
-        <div class="team-block">
-          <div class="label red">Red</div>
-          <div class="score-num" id="red-score">0</div>
-        </div>
-        <div class="game-center">
-          <div class="quarter-label" id="quarter">Q1</div>
-          <div class="clock" id="clock">2:00</div>
-        </div>
-        <div class="team-block">
-          <div class="label blue">Blue</div>
-          <div class="score-num" id="blue-score">0</div>
-        </div>
-      </div>
-
-      <div id="your-status"></div>
-      <div class="start-bar" id="start-bar">
-        <button class="start-btn" id="start-btn" onclick="startGame()">Start Game</button>
-      </div>
-      <div id="break-area"></div>
-      <div id="game-over-area"></div>
-
-      <div class="section-label">Your Superstitions</div>
-      <div class="actions" id="actions"></div>
-
-      <div class="how-toggle" onclick="toggleHow()">How scoring works &#9662;</div>
-      <div class="how-content" id="how-content">
-        Click a superstition whenever you do it.<br>
-        If <strong>your team</strong> scores within 10 seconds: you earn magic power.<br>
-        Faster = more points (instant = +10, 10s = +1).<br>
-        If the <strong>other team</strong> scores: you lose points on the same scale.<br>
-        Each click can only connect to one basket. 3 second cooldown per action.
-      </div>
+    <div class="status-strip" id="status-strip" style="display:none">
+      <span>
+        <span class="status-team" id="status-team"></span>
+        <span class="status-info" id="status-info"></span>
+      </span>
+      <span class="status-magic" id="status-magic"></span>
     </div>
   </div>
 
-  <div class="sidebar">
-    <div class="sb-section">
-      <div class="sb-title">Magic Power Leaderboard</div>
-      <div id="leaderboard"><p class="feed-empty">No players yet</p></div>
+  <div class="game-body">
+    <div class="start-bar" id="start-bar">
+      <button class="start-btn" id="start-btn" onclick="startGame()">Start Game</button>
     </div>
-    <div class="sb-section">
-      <div class="sb-title">Best Superstitions</div>
+    <div id="break-area"></div>
+    <div id="game-over-area"></div>
+
+    <div class="section-label">Your Superstitions</div>
+    <div class="actions" id="actions"></div>
+
+    <div class="how-toggle" onclick="toggleHow()">How scoring works &#9662;</div>
+    <div class="how-body" id="how-body">
+      Click a superstition whenever you do it.<br>
+      If <b>your team</b> scores within 10s &rarr; you earn magic power.<br>
+      Faster = more points (instant = +10, at 10s = +1).<br>
+      If the <b>other team</b> scores &rarr; you lose points.<br>
+      Each click connects to one basket. 3s cooldown per action.
+    </div>
+
+    <!-- Mobile tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="rankings" onclick="switchTab('rankings')">Rankings</button>
+      <button class="tab-btn" data-tab="activity" onclick="switchTab('activity')">Activity</button>
+    </div>
+    <div class="tab-panel active" id="panel-rankings">
+      <div id="leaderboard"><p class="feed-empty">No players yet</p></div>
+      <div class="sub-title" style="margin-top:16px">Best Superstitions</div>
       <div id="action-scores"><p class="feed-empty">No data yet</p></div>
     </div>
-    <div class="sb-section">
-      <div class="sb-title">Live Activity</div>
+    <div class="tab-panel" id="panel-activity">
       <div id="feed"><p class="feed-empty">Waiting for game...</p></div>
     </div>
+  </div>
+
+  <!-- Desktop sidebar (hidden on mobile, shown via CSS on desktop) -->
+  <div class="desktop-sidebar">
+    <div class="sub-title">Magic Power</div>
+    <div id="leaderboard-desktop"><p class="feed-empty">No players yet</p></div>
+    <div class="sub-title" style="margin-top:20px">Best Superstitions</div>
+    <div id="action-scores-desktop"><p class="feed-empty">No data yet</p></div>
+    <div class="sub-title" style="margin-top:20px">Live Activity</div>
+    <div id="feed-desktop"><p class="feed-empty">Waiting for game...</p></div>
   </div>
 </div>
 
@@ -324,25 +492,26 @@ let gameRunning = false;
 let clockSeconds = 0;
 let clockInterval = null;
 
-// --- Team picker ---
+// --- Join ---
 function pickTeam(t) {
   selectedTeam = t;
   document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`.team-btn.${t}`).classList.add('active');
 }
-
-// --- Join ---
 function joinGame() {
   const name = document.getElementById('name-input').value.trim() || 'Anon';
   connect(name, selectedTeam);
 }
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinGame();
+});
 
 // --- WebSocket ---
 function connect(name, team) {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/ws`);
   ws.onopen = () => {
-    const msg = {type: 'register', name, team};
+    const msg = {type:'register', name, team};
     if (playerId) msg.player_id = playerId;
     ws.send(JSON.stringify(msg));
   };
@@ -353,25 +522,24 @@ function connect(name, team) {
       playerName = d.player_name;
       playerTeam = d.player_team;
       document.getElementById('join-screen').style.display = 'none';
-      document.getElementById('game-screen').style.display = 'block';
+      const gs = document.getElementById('game-screen');
+      gs.style.display = '';
+      gs.classList.add('visible');
       renderActions();
     }
     if (d.type === 'cooldown') {
-      showToast(`Wait ${d.remaining}s...`, 'cooldown-toast', 1200);
+      showToast(`Wait ${d.remaining}s`, 'cooldown-toast', 1000);
       return;
     }
-    // Update everything from state data
     if (d.red_score !== undefined) updateScoreboard(d);
     if (d.clock_seconds !== undefined) syncClock(d.clock_seconds);
     if (d.leaderboard) updateLeaderboard(d.leaderboard);
     if (d.actions) updateActionScores(d.actions);
     if (d.activity) updateFeed(d.activity);
-    updateYourStatus(d);
+    updateStatus(d);
     gameRunning = d.running || false;
     updateStartBtn(d);
     updateActionBtns();
-
-    // Event-specific handling
     if (d.type === 'basket') handleBasket(d);
     if (d.type === 'quarter_break') handleQuarterBreak(d);
     if (d.type === 'game_over') handleGameOver(d);
@@ -382,9 +550,9 @@ function connect(name, team) {
   ws.onclose = () => { setTimeout(() => connect(name, team), 2000); };
 }
 
-// --- Client-side clock ---
-function syncClock(serverSeconds) {
-  clockSeconds = serverSeconds;
+// --- Clock ---
+function syncClock(s) {
+  clockSeconds = s;
   renderClock();
   if (clockInterval) clearInterval(clockInterval);
   if (gameRunning && clockSeconds > 0) {
@@ -401,31 +569,30 @@ function renderClock() {
   document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
 }
 
-// --- Render superstition buttons ---
+// --- Actions ---
 function renderActions() {
   document.getElementById('actions').innerHTML = SUPERSTITIONS.map(s =>
     `<button class="action-btn" id="btn-${s.id}" onclick="doAction('${s.id}')" disabled>
-      <span class="emoji">${s.emoji}</span>${s.label}
-      <div class="cooldown-bar" id="cd-${s.id}" style="width:0"></div>
+      <span class="emoji">${s.emoji}</span>
+      ${s.label}
+      <div class="cd-bar" id="cd-${s.id}" style="width:0"></div>
     </button>`
   ).join('');
 }
 function updateActionBtns() {
   SUPERSTITIONS.forEach(s => {
     const btn = document.getElementById(`btn-${s.id}`);
-    if (btn) btn.disabled = !gameRunning;
+    if (btn && !cooldowns[s.id]) btn.disabled = !gameRunning;
   });
 }
 
-// --- Click with cooldown ---
 const cooldowns = {};
 function doAction(id) {
   if (!ws || !playerId || !gameRunning || cooldowns[id]) return;
   ws.send(JSON.stringify({type:'click', player_id:playerId, action:id}));
   const btn = document.getElementById(`btn-${id}`);
   btn.classList.add('clicked');
-  setTimeout(() => btn.classList.remove('clicked'), 400);
-  // Client-side cooldown bar
+  setTimeout(() => btn.classList.remove('clicked'), 350);
   cooldowns[id] = true;
   btn.disabled = true;
   const bar = document.getElementById(`cd-${id}`);
@@ -453,145 +620,132 @@ function updateScoreboard(d) {
   document.getElementById('quarter').textContent = `Q${d.quarter}`;
 }
 
-// --- Your personal status ---
-function updateYourStatus(d) {
+// --- Status ---
+function updateStatus(d) {
   if (!playerId || !d.leaderboard) return;
+  const strip = document.getElementById('status-strip');
+  strip.style.display = '';
   const me = d.leaderboard.find(p => p.id === playerId);
   const score = me ? me.score : 0;
   const clicks = me ? me.clicks : 0;
-  const cls = score > 0 ? 'positive' : score < 0 ? 'negative' : 'zero';
-  document.getElementById('your-status').innerHTML = `
-    <div class="your-status ${playerTeam}">
-      <span><span class="your-team-badge ${playerTeam}">${playerTeam} team</span> &middot; ${playerName} &middot; ${clicks} clicks</span>
-      <span class="your-magic ${cls}">Magic: ${score > 0 ? '+' : ''}${score}</span>
-    </div>`;
+  const el = document.getElementById('status-team');
+  el.className = `status-team ${playerTeam}`;
+  el.textContent = playerTeam;
+  document.getElementById('status-info').textContent = ` \u00b7 ${playerName} \u00b7 ${clicks} clicks`;
+  const mag = document.getElementById('status-magic');
+  mag.className = `status-magic ${score > 0 ? 'pos' : score < 0 ? 'neg' : 'zero'}`;
+  mag.textContent = `${score > 0 ? '+' : ''}${score}`;
 }
 
 function updateStartBtn(d) {
   const bar = document.getElementById('start-bar');
   const btn = document.getElementById('start-btn');
-  if (d.running) {
-    bar.style.display = 'none';
-  } else if (d.finished) {
-    bar.style.display = 'block';
-    btn.textContent = 'New Game';
-    btn.disabled = false;
-  } else {
-    bar.style.display = 'block';
-    btn.disabled = false;
-  }
+  if (d.running) { bar.style.display = 'none'; }
+  else if (d.finished) { bar.style.display = ''; btn.textContent = 'New Game'; btn.disabled = false; }
+  else { bar.style.display = ''; btn.disabled = false; }
 }
 
-// --- Basket event ---
+// --- Basket ---
 function handleBasket(d) {
-  // Flash score
   const el = document.getElementById(`${d.basket_team}-score`);
   el.style.color = d.basket_team === 'red' ? '#ff3333' : '#3377ff';
-  el.style.transform = 'scale(1.25)';
-  setTimeout(() => { el.style.color = ''; el.style.transform = ''; }, 600);
-
+  el.style.transform = 'scale(1.3)';
+  setTimeout(() => { el.style.color = ''; el.style.transform = ''; }, 500);
   document.getElementById('break-area').innerHTML = '';
-
-  // Personal score toasts
   if (d.scoring_breakdowns && playerId) {
-    const mine = d.scoring_breakdowns.filter(b => b.player_id === playerId);
-    mine.forEach(b => {
-      const label = ACTION_MAP[b.action]?.emoji || b.action;
+    d.scoring_breakdowns.filter(b => b.player_id === playerId).forEach(b => {
+      const em = ACTION_MAP[b.action]?.emoji || b.action;
       const sign = b.points > 0 ? '+' : '';
-      const cls = b.points > 0 ? 'positive' : 'negative';
-      showToast(`${label} ${sign}${b.points} (${b.gap}s)`, cls);
+      showToast(`${em} ${sign}${b.points}`, b.points > 0 ? 'positive' : 'negative');
     });
   }
 }
 
 // --- Quarter break ---
 function handleQuarterBreak(d) {
-  document.getElementById('break-area').innerHTML = `
-    <div class="quarter-break-banner">
-      <h2>${d.break_label || 'Break'}</h2>
-      <p>${d.red_score} - ${d.blue_score}</p>
-    </div>`;
+  document.getElementById('break-area').innerHTML =
+    `<div class="break-banner"><h2>${esc(d.break_label||'Break')}</h2><p>${d.red_score} \u2013 ${d.blue_score}</p></div>`;
   if (clockInterval) clearInterval(clockInterval);
 }
 
 // --- Game over ---
 function handleGameOver(d) {
-  const winner = d.red_score > d.blue_score ? 'Red' : d.red_score < d.blue_score ? 'Blue' : null;
-  const topWiz = d.leaderboard?.length ? d.leaderboard[0] : null;
+  const w = d.red_score > d.blue_score ? 'Red' : d.red_score < d.blue_score ? 'Blue' : null;
+  const wiz = d.leaderboard?.length ? d.leaderboard[0] : null;
   document.getElementById('break-area').innerHTML = '';
-  document.getElementById('game-over-area').innerHTML = `
-    <div class="game-over-banner">
-      <h2>${winner ? `${winner} Wins!` : "It's a Tie!"}</h2>
-      <p class="final-score">${d.red_score} - ${d.blue_score}</p>
-      ${topWiz ? `<p>Most magical fan: <strong>${esc(topWiz.name)}</strong> (${topWiz.score > 0 ? '+' : ''}${topWiz.score})</p>` : ''}
+  document.getElementById('game-over-area').innerHTML =
+    `<div class="game-over-banner">
+      <h2>${w ? w + ' Wins!' : "It's a Tie!"}</h2>
+      <p>${d.red_score} \u2013 ${d.blue_score}</p>
+      ${wiz ? `<p>Most magical: <b>${esc(wiz.name)}</b> (${wiz.score>0?'+':''}${wiz.score})</p>` : ''}
     </div>`;
   if (clockInterval) clearInterval(clockInterval);
 }
 
 // --- Leaderboard ---
 function updateLeaderboard(players) {
-  const el = document.getElementById('leaderboard');
-  if (!players.length) { el.innerHTML = '<p class="feed-empty">No players yet</p>'; return; }
-  el.innerHTML = players.map((p, i) => {
-    const cls = p.score > 0 ? 'positive' : p.score < 0 ? 'negative' : 'zero';
-    const youCls = p.id === playerId ? ' you' : '';
-    return `<div class="lb-row">
-      <span class="lb-rank">${i+1}</span>
-      <span class="lb-name ${p.team}${youCls}">${esc(p.name)}</span>
-      <span class="lb-score ${cls}">${p.score > 0 ? '+' : ''}${p.score}</span>
-      <span class="lb-clicks">${p.clicks}x</span>
-    </div>`;
-  }).join('');
+  const html = !players.length ? '<p class="feed-empty">No players yet</p>' :
+    players.map((p,i) => {
+      const cls = p.score>0?'pos':p.score<0?'neg':'zero';
+      const you = p.id===playerId?' you':'';
+      return `<div class="lb-row">
+        <span class="lb-rank">${i+1}</span>
+        <span class="lb-name ${p.team}${you}">${esc(p.name)}</span>
+        <span class="lb-pts ${cls}">${p.score>0?'+':''}${p.score}</span>
+        <span class="lb-ct">${p.clicks}x</span>
+      </div>`;
+    }).join('');
+  document.getElementById('leaderboard').innerHTML = html;
+  const d = document.getElementById('leaderboard-desktop');
+  if (d) d.innerHTML = html;
 }
 
 // --- Action scores ---
 function updateActionScores(actions) {
-  const el = document.getElementById('action-scores');
-  el.innerHTML = actions.map(a => {
+  const html = actions.map(a => {
     const s = ACTION_MAP[a.id];
-    const cls = a.score > 0 ? 'positive' : a.score < 0 ? 'negative' : 'zero';
-    return `<div class="action-row">
-      <span class="action-label">${s ? s.emoji+' '+s.label : a.id}</span>
-      <span class="action-val ${cls}">${a.score > 0 ? '+' : ''}${a.score}</span>
-      <span class="action-count">${a.count}x</span>
+    const cls = a.score>0?'pos':a.score<0?'neg':'zero';
+    return `<div class="as-row">
+      <span class="as-label">${s?s.emoji+' '+s.label:a.id}</span>
+      <span class="as-val ${cls}">${a.score>0?'+':''}${a.score}</span>
+      <span class="as-ct">${a.count}x</span>
     </div>`;
   }).join('');
+  document.getElementById('action-scores').innerHTML = html;
+  const d = document.getElementById('action-scores-desktop');
+  if (d) d.innerHTML = html;
 }
 
-// --- Activity feed ---
+// --- Feed ---
 function updateFeed(activity) {
-  const el = document.getElementById('feed');
-  if (!activity.length) { el.innerHTML = '<p class="feed-empty">Waiting for game...</p>'; return; }
-  el.innerHTML = activity.slice().reverse().map(a => {
-    const kind = a.kind || 'system';
-    let html = `<div class="feed-item ${kind}">`;
-    if (kind === 'basket') {
-      html += `<span class="dot ${a.team || ''}"></span>`;
-    }
-    html += `${esc(a.text)}</div>`;
-    return html;
-  }).join('');
+  const html = !activity.length ? '<p class="feed-empty">Waiting for game...</p>' :
+    activity.slice().reverse().map(a => {
+      const k = a.kind||'system';
+      return `<div class="feed-item ${k}">${k==='basket'?`<span class="dot ${a.team||''}"></span>`:''}${esc(a.text)}</div>`;
+    }).join('');
+  document.getElementById('feed').innerHTML = html;
+  const d = document.getElementById('feed-desktop');
+  if (d) d.innerHTML = html;
 }
 
-// --- Toast system ---
-function showToast(text, cls, duration) {
+// --- Tabs ---
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id===`panel-${tab}`));
+}
+
+// --- Toast ---
+function showToast(text, cls, dur) {
   const el = document.createElement('div');
-  el.className = `toast ${cls || 'info'}`;
+  el.className = `toast ${cls||'info'}`;
   el.textContent = text;
   document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), duration || 2500);
+  setTimeout(() => el.remove(), dur||2300);
 }
 
-// --- How it works toggle ---
-function toggleHow() {
-  document.getElementById('how-content').classList.toggle('open');
-}
-
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+// --- Util ---
+function toggleHow() { document.getElementById('how-body').classList.toggle('open'); }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 </script>
 </body>
 </html>
