@@ -399,7 +399,10 @@ function connect(name, team) {
   ws = new WebSocket(`${proto}://${location.host}/ws`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({type: 'register', name, team}));
+    // Send existing playerId on reconnect so server can restore our session
+    const msg = {type: 'register', name, team};
+    if (playerId) msg.player_id = playerId;
+    ws.send(JSON.stringify(msg));
   };
 
   ws.onmessage = (e) => {

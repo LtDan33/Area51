@@ -3,7 +3,7 @@ import json
 import random
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -26,7 +26,7 @@ class GameEvent:
     red_score: int
     blue_score: int
     quarter: int
-    clock: str  # "MM:SS"
+    clock: str  # "M:SS"
 
 
 @dataclass
@@ -36,6 +36,7 @@ class SuperstitionClick:
     action: str
     timestamp: float
     team: str  # which team they're rooting for
+    scored: bool = False  # True once this click has been scored by a basket
 
 
 @dataclass
@@ -50,14 +51,13 @@ class Player:
 # --- Scoring engine ---
 
 def compute_correlation_score(seconds_gap: float, positive: bool) -> float:
-    """Sliding scale: 1s -> 10 pts, 10s -> 1 pt, >10s -> 0.
+    """Sliding scale: 0s -> 10 pts, 10s -> 1 pt, >10s -> 0.
     Linear interpolation between those bounds.
     Negative events invert the sign."""
     if seconds_gap > 10.0 or seconds_gap < 0:
         return 0.0
-    # 10 at 0s, 1 at 10s  =>  score = 10 - 9*(gap/10) = 10 - 0.9*gap
+    # 10 at 0s, 1 at 10s  =>  score = 10 - 0.9*gap
     raw = 10.0 - 0.9 * seconds_gap
-    raw = max(raw, 0.0)
     return raw if positive else -raw
 
 
@@ -80,21 +80,26 @@ SCORING_INTERVAL_MAX = 12  # max seconds between baskets
 
 class GameState:
     def __init__(self):
+        self.players: dict[str, Player] = {}
         self.reset()
 
     def reset(self):
+        """Reset game state for a new game. Preserves player roster but resets scores."""
         self.red_score = 0
         self.blue_score = 0
         self.quarter = 1
         self.clock_seconds = QUARTER_SECONDS
         self.events: list[GameEvent] = []
         self.clicks: list[SuperstitionClick] = []
-        self.players: dict[str, Player] = {}
         self.action_scores: dict[str, float] = {s["id"]: 0.0 for s in SUPERSTITIONS}
         self.action_counts: dict[str, int] = {s["id"]: 0 for s in SUPERSTITIONS}
         self.running = False
         self.finished = False
         self.next_basket_in: float = random.uniform(SCORING_INTERVAL_MIN, SCORING_INTERVAL_MAX)
+        # Reset player scores but keep them registered
+        for player in self.players.values():
+            player.magic_score = 0.0
+            player.clicks = 0
 
     def format_clock(self) -> str:
         m = int(self.clock_seconds) // 60
@@ -102,9 +107,11 @@ class GameState:
         return f"{m}:{s:02d}"
 
     def score_event(self, event: GameEvent):
-        """After a basket, look back at recent clicks and award/deduct points."""
+        """After a basket, look back at recent unscored clicks and award/deduct points."""
         now = event.timestamp
         for click in self.clicks:
+            if click.scored:
+                continue
             gap = now - click.timestamp
             if gap < 0 or gap > 10:
                 continue
@@ -113,11 +120,12 @@ class GameState:
             pts = compute_correlation_score(gap, positive)
             if pts == 0:
                 continue
+            click.scored = True  # each click only counts for one basket
             player = self.players.get(click.player_id)
             if player:
                 player.magic_score += pts
             self.action_scores[click.action] += pts
-        # prune old clicks (older than 15s)
+        # prune old scored clicks (older than 15s)
         cutoff = now - 15.0
         self.clicks = [c for c in self.clicks if c.timestamp > cutoff]
 
@@ -159,7 +167,10 @@ async def send_full_state(ws: WebSocket):
     await ws.send_text(json.dumps(build_state_message()))
 
 
-def build_state_message() -> dict:
+def build_state_message(msg_type: str = "state", **extra) -> dict:
+    """Build a state message. Extra fields are added, and msg_type sets the type.
+
+    IMPORTANT: msg_type is applied last so it cannot be overwritten by spread."""
     top_players = sorted(game.players.values(), key=lambda p: p.magic_score, reverse=True)[:10]
     top_actions = sorted(
         [(aid, game.action_scores[aid], game.action_counts[aid]) for aid in game.action_scores],
@@ -167,8 +178,8 @@ def build_state_message() -> dict:
         reverse=True,
     )
     recent_events = game.events[-15:]  # last 15 baskets
-    return {
-        "type": "state",
+    msg = {
+        "type": msg_type,
         "red_score": game.red_score,
         "blue_score": game.blue_score,
         "quarter": game.quarter,
@@ -189,6 +200,8 @@ def build_state_message() -> dict:
             for e in recent_events
         ],
     }
+    msg.update(extra)
+    return msg
 
 
 # --- Game simulation loop ---
@@ -231,31 +244,21 @@ async def run_game():
                 game.score_event(evt)
                 game.next_basket_in = random.uniform(SCORING_INTERVAL_MIN, SCORING_INTERVAL_MAX)
 
-                await manager.broadcast({
-                    "type": "basket",
-                    "team": team,
-                    "points": pts,
-                    **build_state_message(),
-                })
+                await manager.broadcast(build_state_message(
+                    "basket", team=team, points=pts,
+                ))
             elif int(game.clock_seconds) % 5 == 0:
                 # periodic clock update every 5s
                 await manager.broadcast(build_state_message())
 
         # quarter break
         if q < 4:
-            await manager.broadcast({
-                "type": "quarter_end",
-                "quarter": q,
-                **build_state_message(),
-            })
+            await manager.broadcast(build_state_message("quarter_end"))
             await asyncio.sleep(3)
 
     game.running = False
     game.finished = True
-    await manager.broadcast({
-        "type": "game_over",
-        **build_state_message(),
-    })
+    await manager.broadcast(build_state_message("game_over"))
 
 
 game_task: asyncio.Task | None = None
@@ -287,10 +290,13 @@ async def websocket_endpoint(ws: WebSocket):
             data = json.loads(raw)
 
             if data.get("type") == "register":
-                pid = str(uuid.uuid4())[:8]
+                pid = data.get("player_id")  # allow reconnecting with existing id
+                if not pid or pid not in game.players:
+                    pid = str(uuid.uuid4())[:8]
                 name = data.get("name", "Anon")[:20]
                 team = data.get("team", "red")
-                game.players[pid] = Player(id=pid, name=name, team=team)
+                if pid not in game.players:
+                    game.players[pid] = Player(id=pid, name=name, team=team)
                 await ws.send_text(json.dumps({"type": "registered", "player_id": pid}))
                 await manager.broadcast(build_state_message())
 
@@ -308,11 +314,10 @@ async def websocket_endpoint(ws: WebSocket):
                     game.clicks.append(click)
                     game.players[pid].clicks += 1
                     game.action_counts[action] += 1
-                    await manager.broadcast({
-                        "type": "click_ack",
-                        "player": game.players[pid].name,
-                        "action": action,
-                        **build_state_message(),
-                    })
+                    await manager.broadcast(build_state_message(
+                        "click_ack",
+                        player=game.players[pid].name,
+                        action=action,
+                    ))
     except WebSocketDisconnect:
         manager.disconnect(ws)
