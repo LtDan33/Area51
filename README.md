@@ -1,29 +1,21 @@
-# Magic 8 Ball - Advanced AI Edition
+# Area 51
 
-A brutally honest Magic 8 Ball that tells you what you need to hear, not what you want to hear.
+A monorepo collection of experimental project ideas. Each project lives in its own folder with its own dependencies and setup.
 
-## Features
+## Projects
 
-- Beautiful modern UI with smoke effects and animations
-- 15 unique responses (all variations of "no")
-- FastAPI backend
-- Responsive design
+| Project | Description |
+|---------|-------------|
+| [magic-8-ball](./magic-8-ball) | A brutally honest Magic 8 Ball that tells you what you need to hear |
+| [sports-superstition-tracker](./sports-superstition-tracker) | Track your superstitions during live sports and see if they actually work |
 
-## Installation
+## Structure
 
-```bash
-poetry install
+```
+Area51/
+  magic-8-ball/          # Each project is self-contained
+  sports-superstition-tracker/
+  ...
 ```
 
-## Running
-
-```bash
-poetry run uvicorn app.main:app --reload
-```
-
-Then open http://localhost:8000 in your browser.
-
-## API
-
-- `GET /` - Serves the main page
-- `GET /api/shake` - Returns a random Magic 8 Ball response
+Each project has its own `pyproject.toml`, dependencies, and README with setup instructions.
