@@ -1,6 +1,6 @@
 # Sports Superstition Tracker
 
-Track your superstitions during a live basketball game and see if your rituals actually affect the score.
+Track your superstitions during a live basketball game and see if your rituals actually affect the score. Multiplayer and mobile-first -- best experienced on a phone with friends.
 
 ## How it works
 
@@ -11,6 +11,13 @@ Track your superstitions during a live basketball game and see if your rituals a
 5. Scoring is on a sliding scale: basket within 1s of your click = +10, within 10s = +1, linear in between
 6. If the *other* team scores after your click, you lose points on the same scale
 7. Leaderboard shows who has the most **magic power** and which superstitions are most effective
+
+Each action has a 3-second cooldown to prevent spamming. You get a personal toast notification whenever a basket connects to one of your clicks.
+
+## Prerequisites
+
+- Python 3.11+
+- [Poetry](https://python-poetry.org/docs/#installation)
 
 ## Setup
 
@@ -25,11 +32,19 @@ poetry install
 poetry run uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000 -- open multiple tabs to simulate multiple fans.
+Open http://localhost:8000 in a browser. Open multiple tabs or share the URL on your local network to play with friends.
+
+To make the server accessible to other devices on your network:
+
+```bash
+poetry run uvicorn app.main:app --reload --host 0.0.0.0
+```
+
+Then open `http://<your-ip>:8000` on any phone or laptop on the same network.
 
 ## Tech
 
-- **Backend:** FastAPI + WebSockets
-- **Frontend:** Vanilla HTML/CSS/JS (single page, no build step)
+- **Backend:** FastAPI + WebSockets (real-time multiplayer)
+- **Frontend:** Vanilla HTML/CSS/JS (single page, no build step, mobile-first)
 - **Game sim:** Random basket generation every 4-12 seconds
 - **Package manager:** Poetry
