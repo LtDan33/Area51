@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#111113">
-<title>Superstition Tracker</title>
+<title>Superstition Tracker — 60s Demo</title>
 <style>
   :root {
     --bg: #111113;
@@ -132,12 +132,8 @@
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
   }
   .sb-mid { text-align: center; min-width: 56px; }
-  .sb-quarter {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
-    letter-spacing: 1.5px; font-weight: 600;
-  }
   .sb-clock {
-    font-size: 20px; font-weight: 700;
+    font-size: 24px; font-weight: 800;
     font-variant-numeric: tabular-nums; line-height: 1.2;
   }
 
@@ -178,14 +174,6 @@
   }
   .start-btn:active { transform: scale(0.98); }
   .start-btn:disabled { opacity: 0.35; cursor: default; }
-
-  .break-banner {
-    text-align: center; padding: 20px 16px; margin: 8px 0;
-    background: var(--surface); border-radius: var(--radius);
-    border: 1px solid var(--border);
-  }
-  .break-banner h2 { font-size: 18px; font-weight: 700; color: var(--text-2); }
-  .break-banner p { color: var(--text-3); font-size: 13px; margin-top: 4px; }
 
   .game-over-banner {
     text-align: center; padding: 24px 16px; margin: 8px 0;
@@ -392,7 +380,7 @@
 <!-- ====== JOIN ====== -->
 <div id="join-screen">
   <div class="join-title">Superstition Tracker</div>
-  <p class="join-sub">Click your superstitions during a live game. See if your rituals actually affect the score.</p>
+  <p class="join-sub">60-second mocked basketball game. Click your superstitions and see if they correlate with your team scoring.</p>
   <input class="join-input" type="text" id="name-input" placeholder="Your name" maxlength="20" enterkeyhint="go" />
   <div class="team-pick">
     <button class="team-btn red active" onclick="pickTeam('red')">Red Team</button>
@@ -410,8 +398,7 @@
         <div class="sb-team-num" id="red-score">0</div>
       </div>
       <div class="sb-mid">
-        <div class="sb-quarter" id="quarter">Q1</div>
-        <div class="sb-clock" id="clock">2:00</div>
+        <div class="sb-clock" id="clock">1:00</div>
       </div>
       <div class="sb-team">
         <div class="sb-team-label blue">Blue</div>
@@ -431,7 +418,6 @@
     <div class="start-bar" id="start-bar">
       <button class="start-btn" id="start-btn" onclick="startGame()">Start Game</button>
     </div>
-    <div id="break-area"></div>
     <div id="game-over-area"></div>
 
     <div class="section-label">Your Superstitions</div>
@@ -441,8 +427,8 @@
     <div class="how-body" id="how-body">
       Click a superstition whenever you do it.<br>
       If <b>your team</b> scores within 10s &rarr; you earn magic power.<br>
-      Faster = more points (instant = +10, at 10s = +1).<br>
-      If the <b>other team</b> scores &rarr; you lose points.<br>
+      Faster = more points (within 0.5s = +10, linear decay to 0 at 10s).<br>
+      If the <b>other team</b> scores &rarr; you lose points on the same scale.<br>
       Each click connects to one basket. 3s cooldown per action.
     </div>
 
@@ -474,16 +460,13 @@
 
 <script>
 const SUPERSTITIONS = [
-  {id:"cap",   label:"Turn Cap Around", emoji:"🧢"},
-  {id:"beer",  label:"Take a Sip",      emoji:"🍺"},
-  {id:"stand", label:"Stand Up",         emoji:"🧍"},
-  {id:"clap",  label:"Clap 3 Times",    emoji:"👏"},
-  {id:"cross", label:"Cross Fingers",   emoji:"🤞"},
-  {id:"blow",  label:"Blow on Screen",  emoji:"💨"},
+  {id:"cap",   label:"Turn Hat Backwards", emoji:"🧢"},
+  {id:"beer",  label:"Take a Sip",          emoji:"🍺"},
+  {id:"knock", label:"Knock on Wood",       emoji:"🪵"},
 ];
 const ACTION_MAP = Object.fromEntries(SUPERSTITIONS.map(s => [s.id, s]));
 
-let ws = null;
+let eventSource = null;
 let playerId = null;
 let playerName = null;
 let playerTeam = "red";
@@ -498,39 +481,45 @@ function pickTeam(t) {
   document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`.team-btn.${t}`).classList.add('active');
 }
-function joinGame() {
+async function joinGame() {
   const name = document.getElementById('name-input').value.trim() || 'Anon';
-  connect(name, selectedTeam);
+  await connect(name, selectedTeam);
 }
 document.getElementById('name-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') joinGame();
 });
 
-// --- WebSocket ---
-function connect(name, team) {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
-  ws.onopen = () => {
-    const msg = {type:'register', name, team};
-    if (playerId) msg.player_id = playerId;
-    ws.send(JSON.stringify(msg));
-  };
-  ws.onmessage = (e) => {
+// --- SSE + register ---
+async function connect(name, team) {
+  try {
+    const body = {name, team};
+    if (playerId) body.player_id = playerId;
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('register failed');
+    const d = await res.json();
+    playerId = d.player_id;
+    playerName = d.player_name;
+    playerTeam = d.player_team;
+  } catch (err) {
+    showToast('Connection failed. Retrying...', 'cooldown-toast', 1500);
+    setTimeout(() => connect(name, team), 2000);
+    return;
+  }
+
+  document.getElementById('join-screen').style.display = 'none';
+  const gs = document.getElementById('game-screen');
+  gs.style.display = '';
+  gs.classList.add('visible');
+  renderActions();
+
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/api/stream');
+  eventSource.onmessage = (e) => {
     const d = JSON.parse(e.data);
-    if (d.type === 'registered') {
-      playerId = d.player_id;
-      playerName = d.player_name;
-      playerTeam = d.player_team;
-      document.getElementById('join-screen').style.display = 'none';
-      const gs = document.getElementById('game-screen');
-      gs.style.display = '';
-      gs.classList.add('visible');
-      renderActions();
-    }
-    if (d.type === 'cooldown') {
-      showToast(`Wait ${d.remaining}s`, 'cooldown-toast', 1000);
-      return;
-    }
     if (d.red_score !== undefined) updateScoreboard(d);
     if (d.clock_seconds !== undefined) syncClock(d.clock_seconds);
     if (d.leaderboard) updateLeaderboard(d.leaderboard);
@@ -541,13 +530,9 @@ function connect(name, team) {
     updateStartBtn(d);
     updateActionBtns();
     if (d.type === 'basket') handleBasket(d);
-    if (d.type === 'quarter_break') handleQuarterBreak(d);
     if (d.type === 'game_over') handleGameOver(d);
-    if (d.type === 'state' || d.type === 'click_ack') {
-      document.getElementById('break-area').innerHTML = '';
-    }
   };
-  ws.onclose = () => { setTimeout(() => connect(name, team), 2000); };
+  // EventSource auto-reconnects on its own; no manual handler needed.
 }
 
 // --- Clock ---
@@ -587,9 +572,8 @@ function updateActionBtns() {
 }
 
 const cooldowns = {};
-function doAction(id) {
-  if (!ws || !playerId || !gameRunning || cooldowns[id]) return;
-  ws.send(JSON.stringify({type:'click', player_id:playerId, action:id}));
+async function doAction(id) {
+  if (!playerId || !gameRunning || cooldowns[id]) return;
   const btn = document.getElementById(`btn-${id}`);
   btn.classList.add('clicked');
   setTimeout(() => btn.classList.remove('clicked'), 350);
@@ -603,13 +587,27 @@ function doAction(id) {
     bar.style.width = '0';
   });
   setTimeout(() => { cooldowns[id] = false; if (gameRunning) btn.disabled = false; }, 3000);
+
+  try {
+    const res = await fetch('/api/click', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({player_id: playerId, action: id}),
+    });
+    if (res.status === 429) {
+      const d = await res.json().catch(() => ({}));
+      const remaining = d.remaining ?? 3;
+      showToast(`Wait ${remaining}s`, 'cooldown-toast', 1000);
+    }
+  } catch (err) {
+    // Network hiccup — let the cooldown timer rearm the button
+  }
 }
 
 // --- Start ---
 async function startGame() {
   document.getElementById('start-btn').disabled = true;
   document.getElementById('game-over-area').innerHTML = '';
-  document.getElementById('break-area').innerHTML = '';
   await fetch('/api/start', {method:'POST'});
 }
 
@@ -617,7 +615,6 @@ async function startGame() {
 function updateScoreboard(d) {
   document.getElementById('red-score').textContent = d.red_score;
   document.getElementById('blue-score').textContent = d.blue_score;
-  document.getElementById('quarter').textContent = `Q${d.quarter}`;
 }
 
 // --- Status ---
@@ -651,7 +648,6 @@ function handleBasket(d) {
   el.style.color = d.basket_team === 'red' ? '#ff3333' : '#3377ff';
   el.style.transform = 'scale(1.3)';
   setTimeout(() => { el.style.color = ''; el.style.transform = ''; }, 500);
-  document.getElementById('break-area').innerHTML = '';
   if (d.scoring_breakdowns && playerId) {
     d.scoring_breakdowns.filter(b => b.player_id === playerId).forEach(b => {
       const em = ACTION_MAP[b.action]?.emoji || b.action;
@@ -661,18 +657,10 @@ function handleBasket(d) {
   }
 }
 
-// --- Quarter break ---
-function handleQuarterBreak(d) {
-  document.getElementById('break-area').innerHTML =
-    `<div class="break-banner"><h2>${esc(d.break_label||'Break')}</h2><p>${d.red_score} \u2013 ${d.blue_score}</p></div>`;
-  if (clockInterval) clearInterval(clockInterval);
-}
-
 // --- Game over ---
 function handleGameOver(d) {
   const w = d.red_score > d.blue_score ? 'Red' : d.red_score < d.blue_score ? 'Blue' : null;
   const wiz = d.leaderboard?.length ? d.leaderboard[0] : null;
-  document.getElementById('break-area').innerHTML = '';
   document.getElementById('game-over-area').innerHTML =
     `<div class="game-over-banner">
       <h2>${w ? w + ' Wins!' : "It's a Tie!"}</h2>
