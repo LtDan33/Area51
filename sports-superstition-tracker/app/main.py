@@ -36,6 +36,7 @@ class ScoreBreakdown:
     points: float
     basket_team: str
     gap_seconds: float
+    streak: int = 0  # current positive-scoring streak after this click resolved
 
 
 @dataclass
@@ -55,6 +56,11 @@ class Player:
     team: str
     magic_score: float = 0.0
     clicks: int = 0
+    positive_clicks: int = 0
+    streak: int = 0  # current run of positive-scoring clicks
+    max_streak: int = 0  # best streak this game
+    best_click: dict | None = None  # {action, points, gap, basket_team, clock}
+    action_scores: dict = field(default_factory=dict)  # per-action sum of points
     last_click_time: dict = field(default_factory=dict)  # action_id -> timestamp
 
 
@@ -119,6 +125,11 @@ class GameState:
         for player in self.players.values():
             player.magic_score = 0.0
             player.clicks = 0
+            player.positive_clicks = 0
+            player.streak = 0
+            player.max_streak = 0
+            player.best_click = None
+            player.action_scores = {}
             player.last_click_time = {}
 
     def format_clock(self) -> str:
@@ -149,6 +160,24 @@ class GameState:
             player = self.players.get(click.player_id)
             if player:
                 player.magic_score += pts
+                player.action_scores[click.action] = (
+                    player.action_scores.get(click.action, 0.0) + pts
+                )
+                if pts > 0:
+                    player.positive_clicks += 1
+                    player.streak += 1
+                    if player.streak > player.max_streak:
+                        player.max_streak = player.streak
+                else:
+                    player.streak = 0
+                if player.best_click is None or pts > player.best_click["points"]:
+                    player.best_click = {
+                        "action": click.action,
+                        "points": pts,
+                        "gap": round(gap, 1),
+                        "basket_team": event.team,
+                        "clock": event.clock,
+                    }
             self.action_scores[click.action] += pts
             breakdowns.append(ScoreBreakdown(
                 player_id=click.player_id,
@@ -157,6 +186,7 @@ class GameState:
                 points=pts,
                 basket_team=event.team,
                 gap_seconds=round(gap, 1),
+                streak=player.streak if player else 0,
             ))
         cutoff = now - 15.0
         self.clicks = [c for c in self.clicks if c.timestamp > cutoff]
@@ -196,6 +226,30 @@ class SSEHub:
 hub = SSEHub()
 
 
+def player_recap(p: Player) -> dict:
+    """Per-player end-of-game recap snapshot."""
+    top_action_id = None
+    top_action_pts = 0.0
+    for aid, pts in p.action_scores.items():
+        if pts > top_action_pts:
+            top_action_pts = pts
+            top_action_id = aid
+    return {
+        "id": p.id,
+        "name": p.name,
+        "team": p.team,
+        "score": round(p.magic_score, 1),
+        "clicks": p.clicks,
+        "positive_clicks": p.positive_clicks,
+        "max_streak": p.max_streak,
+        "best_click": p.best_click,
+        "top_action": {
+            "id": top_action_id,
+            "points": round(top_action_pts, 1),
+        } if top_action_id else None,
+    }
+
+
 def build_state_message(msg_type: str = "state", **extra) -> dict:
     top_players = sorted(game.players.values(), key=lambda p: p.magic_score, reverse=True)[:10]
     top_actions = sorted(
@@ -214,7 +268,8 @@ def build_state_message(msg_type: str = "state", **extra) -> dict:
         "finished": game.finished,
         "leaderboard": [
             {"id": p.id, "name": p.name, "team": p.team,
-             "score": round(p.magic_score, 1), "clicks": p.clicks}
+             "score": round(p.magic_score, 1), "clicks": p.clicks,
+             "streak": p.streak, "max_streak": p.max_streak}
             for p in top_players
         ],
         "actions": [
@@ -228,6 +283,8 @@ def build_state_message(msg_type: str = "state", **extra) -> dict:
         ],
         "activity": game.activity_log[-20:],
     }
+    if msg_type == "game_over":
+        msg["recap"] = [player_recap(p) for p in top_players]
     msg.update(extra)
     return msg
 
@@ -236,9 +293,18 @@ def build_state_message(msg_type: str = "state", **extra) -> dict:
 
 async def run_game():
     game.reset()
+    # Pre-game countdown phase. Game is not yet running so clicks are rejected.
+    game.add_activity({"kind": "system", "text": "Tip-off in 3..."})
+    await hub.broadcast(build_state_message("countdown", countdown=3))
+    await asyncio.sleep(1)
+    await hub.broadcast(build_state_message("countdown", countdown=2))
+    await asyncio.sleep(1)
+    await hub.broadcast(build_state_message("countdown", countdown=1))
+    await asyncio.sleep(1)
+
     game.running = True
-    game.add_activity({"kind": "system", "text": "Game started!"})
-    await hub.broadcast(build_state_message())
+    game.add_activity({"kind": "system", "text": "Game on!"})
+    await hub.broadcast(build_state_message("countdown", countdown=0))
 
     script = list(GAME_SCRIPT)
     next_idx = 0
@@ -283,7 +349,7 @@ async def run_game():
                 scoring_breakdowns=[
                     {"player_id": b.player_id, "player_name": b.player_name,
                      "action": b.action, "points": b.points,
-                     "gap": b.gap_seconds}
+                     "gap": b.gap_seconds, "streak": b.streak}
                     for b in breakdowns
                 ],
             ))

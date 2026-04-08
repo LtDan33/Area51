@@ -311,6 +311,169 @@
   .feed-item.join { color: var(--text-4); }
   .feed-empty { color: var(--text-4); font-size: 12px; }
 
+  /* ====== PENDING MOJO RAIL ====== */
+  .mojo-rail {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 4px 16px 8px;
+    min-height: 0;
+  }
+  .mojo-rail:empty { display: none; }
+  .mojo-pill {
+    position: relative; overflow: hidden;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 9px 5px 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    font-size: 11px; font-weight: 600;
+    color: var(--text-2);
+    animation: pillIn 0.18s ease-out;
+    min-width: 56px;
+  }
+  .mojo-pill .pe { font-size: 13px; line-height: 1; }
+  .mojo-pill .plabel { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mojo-pill .pbar {
+    position: absolute; bottom: 0; left: 0; height: 2px;
+    background: var(--positive);
+    transition: width 10s linear, background-color 10s linear;
+    width: 100%;
+  }
+  .mojo-pill.scored.positive {
+    background: var(--positive-bg);
+    border-color: var(--positive-border);
+    color: var(--positive);
+    animation: pillPop 0.35s ease-out;
+  }
+  .mojo-pill.scored.negative {
+    background: var(--negative-bg);
+    border-color: var(--negative-border);
+    color: var(--negative);
+    animation: pillPop 0.35s ease-out;
+  }
+  .mojo-pill.expired {
+    opacity: 0.4;
+    color: var(--text-4);
+  }
+  .mojo-pill.fade-out {
+    animation: pillOut 0.4s ease-in forwards;
+  }
+  @keyframes pillIn { from { opacity:0; transform:translateY(-4px) scale(0.9); } to { opacity:1; transform:none; } }
+  @keyframes pillPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  @keyframes pillOut { from { opacity:1; } to { opacity:0; transform:scale(0.85); } }
+
+  /* ====== COUNTDOWN OVERLAY ====== */
+  .countdown {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(17, 17, 19, 0.86);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    pointer-events: none;
+  }
+  .countdown.hidden { display: none; }
+  .countdown-num {
+    font-size: 140px; font-weight: 900;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    animation: cdPop 1s ease-out;
+    text-shadow: 0 0 60px rgba(255,255,255,0.18);
+  }
+  .countdown-num.go {
+    color: var(--positive);
+    font-size: 96px;
+    letter-spacing: 4px;
+  }
+  @keyframes cdPop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    25%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.85; }
+  }
+
+  /* ====== STREAK CELEBRATION ====== */
+  .toast.streak {
+    background: linear-gradient(135deg, #2d1f0a, #3a2912);
+    color: #ffcc66;
+    border: 1px solid #5a3f1a;
+    font-size: 16px;
+    padding: 12px 22px;
+    box-shadow: 0 0 24px rgba(255, 170, 60, 0.25);
+  }
+  .scoreboard.streak-glow {
+    animation: sbGlow 0.9s ease-out;
+  }
+  @keyframes sbGlow {
+    0%   { box-shadow: inset 0 0 0 rgba(255,170,60,0); }
+    35%  { box-shadow: inset 0 0 36px rgba(255,170,60,0.45); }
+    100% { box-shadow: inset 0 0 0 rgba(255,170,60,0); }
+  }
+
+  /* ====== GAME-OVER RECAP ====== */
+  .recap-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 14px;
+  }
+  .recap-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  .recap-card .rc-label {
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-4);
+    margin-bottom: 4px;
+  }
+  .recap-card .rc-value {
+    font-size: 15px; font-weight: 700;
+    color: var(--text);
+  }
+  .recap-card .rc-sub {
+    font-size: 11px; color: var(--text-3);
+    margin-top: 2px;
+  }
+  .recap-actions {
+    display: flex; gap: 8px; margin-top: 12px;
+    justify-content: center;
+  }
+  .recap-btn {
+    padding: 10px 18px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--surface-2);
+    color: var(--text-2); font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .recap-btn:active { transform: scale(0.97); }
+  .recap-btn.primary {
+    background: var(--text); color: var(--bg);
+    border-color: var(--text);
+  }
+
+  /* ====== SOUND TOGGLE ====== */
+  .sound-toggle {
+    position: fixed;
+    top: calc(10px + var(--safe-top));
+    right: calc(12px + var(--safe-right));
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    cursor: pointer;
+    z-index: 150;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .sound-toggle.on { color: var(--text); border-color: var(--border-light); }
+
   /* ====== TOASTS ====== */
   .toast-zone {
     position: fixed; top: calc(8px + var(--safe-top));
@@ -377,6 +540,12 @@
 
 <div class="toast-zone" id="toasts"></div>
 
+<div class="countdown hidden" id="countdown" aria-hidden="true">
+  <div class="countdown-num" id="countdown-num">3</div>
+</div>
+
+<button class="sound-toggle" id="sound-toggle" onclick="toggleSound()" aria-label="Toggle sound">🔇</button>
+
 <!-- ====== JOIN ====== -->
 <div id="join-screen">
   <div class="join-title">Superstition Tracker</div>
@@ -412,6 +581,7 @@
       </span>
       <span class="status-magic" id="status-magic"></span>
     </div>
+    <div class="mojo-rail" id="mojo-rail" aria-label="Active superstitions"></div>
   </div>
 
   <div class="game-body">
@@ -474,6 +644,70 @@ let selectedTeam = "red";
 let gameRunning = false;
 let clockSeconds = 0;
 let clockInterval = null;
+let pendingPills = [];  // {id, action, ts, el, scored, timer}
+let pillCounter = 0;
+let soundOn = false;
+let audioCtx = null;
+let lastCountdownNum = null;
+
+// --- Sound + haptics ---
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, durMs, type='sine', gain=0.08) {
+  if (!soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + durMs/1000);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + durMs/1000 + 0.02);
+  } catch (e) {}
+}
+function sfxClick() { playTone(620, 70, 'square', 0.05); }
+function sfxBasket() { playTone(440, 90, 'sine'); setTimeout(() => playTone(660, 110, 'sine'), 70); }
+function sfxScore(positive) {
+  if (positive) { playTone(880, 90); setTimeout(() => playTone(1175, 140), 80); }
+  else { playTone(220, 200, 'sawtooth', 0.06); }
+}
+function sfxStreak() {
+  playTone(523, 80); setTimeout(() => playTone(659, 80), 70);
+  setTimeout(() => playTone(784, 120), 140); setTimeout(() => playTone(1047, 180), 220);
+}
+function sfxCountdown(n) {
+  if (n > 0) playTone(440, 80);
+  else { playTone(660, 100); setTimeout(() => playTone(880, 200), 80); }
+}
+function vibrate(pattern) {
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  ensureAudio();
+  const btn = document.getElementById('sound-toggle');
+  btn.textContent = soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('on', soundOn);
+  try { localStorage.setItem('mojoSound', soundOn ? '1' : '0'); } catch (e) {}
+  if (soundOn) playTone(880, 100);
+}
+// Restore sound preference
+try {
+  if (localStorage.getItem('mojoSound') === '1') {
+    soundOn = true;
+    document.getElementById('sound-toggle').textContent = '🔊';
+    document.getElementById('sound-toggle').classList.add('on');
+  }
+} catch (e) {}
 
 // --- Join ---
 function pickTeam(t) {
@@ -520,6 +754,7 @@ async function connect(name, team) {
   eventSource = new EventSource('/api/stream');
   eventSource.onmessage = (e) => {
     const d = JSON.parse(e.data);
+    if (d.type === 'countdown') { handleCountdown(d); return; }
     if (d.red_score !== undefined) updateScoreboard(d);
     if (d.clock_seconds !== undefined) syncClock(d.clock_seconds);
     if (d.leaderboard) updateLeaderboard(d.leaderboard);
@@ -533,6 +768,35 @@ async function connect(name, team) {
     if (d.type === 'game_over') handleGameOver(d);
   };
   // EventSource auto-reconnects on its own; no manual handler needed.
+}
+
+// --- Countdown overlay ---
+function handleCountdown(d) {
+  const overlay = document.getElementById('countdown');
+  const num = document.getElementById('countdown-num');
+  if (d.countdown === 0) {
+    num.textContent = 'GO!';
+    num.className = 'countdown-num go';
+    sfxCountdown(0);
+    vibrate([60, 40, 60]);
+    setTimeout(() => overlay.classList.add('hidden'), 700);
+  } else {
+    overlay.classList.remove('hidden');
+    num.textContent = String(d.countdown);
+    num.className = 'countdown-num';
+    // Re-trigger animation
+    void num.offsetWidth;
+    num.style.animation = 'none';
+    requestAnimationFrame(() => { num.style.animation = ''; });
+    if (d.countdown !== lastCountdownNum) {
+      sfxCountdown(d.countdown);
+      vibrate(30);
+    }
+  }
+  lastCountdownNum = d.countdown;
+  // Reset stale UI from previous game
+  document.getElementById('game-over-area').innerHTML = '';
+  clearMojoRail();
 }
 
 // --- Clock ---
@@ -574,6 +838,9 @@ function updateActionBtns() {
 const cooldowns = {};
 async function doAction(id) {
   if (!playerId || !gameRunning || cooldowns[id]) return;
+  ensureAudio();
+  sfxClick();
+  vibrate(15);
   const btn = document.getElementById(`btn-${id}`);
   btn.classList.add('clicked');
   setTimeout(() => btn.classList.remove('clicked'), 350);
@@ -588,6 +855,9 @@ async function doAction(id) {
   });
   setTimeout(() => { cooldowns[id] = false; if (gameRunning) btn.disabled = false; }, 3000);
 
+  // Optimistically add a pending mojo pill — server will resolve it later
+  const pill = addMojoPill(id);
+
   try {
     const res = await fetch('/api/click', {
       method: 'POST',
@@ -598,16 +868,85 @@ async function doAction(id) {
       const d = await res.json().catch(() => ({}));
       const remaining = d.remaining ?? 3;
       showToast(`Wait ${remaining}s`, 'cooldown-toast', 1000);
+      removeMojoPill(pill);
+    } else if (!res.ok) {
+      removeMojoPill(pill);
     }
   } catch (err) {
-    // Network hiccup — let the cooldown timer rearm the button
+    // Network hiccup — drop the pill, let cooldown timer rearm
+    removeMojoPill(pill);
   }
+}
+
+// --- Pending Mojo Rail ---
+function addMojoPill(action) {
+  const meta = ACTION_MAP[action];
+  const id = ++pillCounter;
+  const el = document.createElement('div');
+  el.className = 'mojo-pill';
+  el.dataset.pillId = id;
+  el.innerHTML = `<span class="pe">${meta?.emoji || '?'}</span><span class="plabel">…</span><div class="pbar"></div>`;
+  document.getElementById('mojo-rail').appendChild(el);
+  // Kick off the 10s decay animation
+  const bar = el.querySelector('.pbar');
+  requestAnimationFrame(() => {
+    bar.style.width = '0%';
+    bar.style.backgroundColor = '#ff5c5c';
+  });
+  const pill = { id, action, ts: Date.now(), el, scored: false, timer: null };
+  pill.timer = setTimeout(() => expirePill(pill), 10100);
+  pendingPills.push(pill);
+  return pill;
+}
+function resolveMojoPill(action, points) {
+  // Find the oldest unscored pill for this action
+  const pill = pendingPills.find(p => !p.scored && p.action === action);
+  if (!pill) return;
+  pill.scored = true;
+  if (pill.timer) clearTimeout(pill.timer);
+  const positive = points > 0;
+  pill.el.classList.add('scored', positive ? 'positive' : 'negative');
+  const sign = positive ? '+' : '';
+  pill.el.querySelector('.plabel').textContent = `${sign}${points}`;
+  // Freeze the bar at current width by killing transition
+  const bar = pill.el.querySelector('.pbar');
+  const computed = getComputedStyle(bar).width;
+  bar.style.transition = 'none';
+  bar.style.width = computed;
+  bar.style.backgroundColor = positive ? 'var(--positive)' : 'var(--negative)';
+  setTimeout(() => fadePill(pill), 1800);
+}
+function expirePill(pill) {
+  if (pill.scored) return;
+  pill.scored = true;
+  pill.el.classList.add('expired');
+  pill.el.querySelector('.plabel').textContent = '—';
+  setTimeout(() => fadePill(pill), 600);
+}
+function fadePill(pill) {
+  pill.el.classList.add('fade-out');
+  setTimeout(() => {
+    pill.el.remove();
+    pendingPills = pendingPills.filter(p => p.id !== pill.id);
+  }, 420);
+}
+function removeMojoPill(pill) {
+  if (!pill) return;
+  if (pill.timer) clearTimeout(pill.timer);
+  pendingPills = pendingPills.filter(p => p.id !== pill.id);
+  pill.el.remove();
+}
+function clearMojoRail() {
+  pendingPills.forEach(p => { if (p.timer) clearTimeout(p.timer); p.el.remove(); });
+  pendingPills = [];
 }
 
 // --- Start ---
 async function startGame() {
+  ensureAudio();
   document.getElementById('start-btn').disabled = true;
   document.getElementById('game-over-area').innerHTML = '';
+  clearMojoRail();
   await fetch('/api/start', {method:'POST'});
 }
 
@@ -648,12 +987,33 @@ function handleBasket(d) {
   el.style.color = d.basket_team === 'red' ? '#ff3333' : '#3377ff';
   el.style.transform = 'scale(1.3)';
   setTimeout(() => { el.style.color = ''; el.style.transform = ''; }, 500);
+  sfxBasket();
   if (d.scoring_breakdowns && playerId) {
-    d.scoring_breakdowns.filter(b => b.player_id === playerId).forEach(b => {
+    const mine = d.scoring_breakdowns.filter(b => b.player_id === playerId);
+    let bestStreak = 0;
+    mine.forEach(b => {
       const em = ACTION_MAP[b.action]?.emoji || b.action;
       const sign = b.points > 0 ? '+' : '';
       showToast(`${em} ${sign}${b.points}`, b.points > 0 ? 'positive' : 'negative');
+      resolveMojoPill(b.action, b.points);
+      sfxScore(b.points > 0);
+      vibrate(b.points > 0 ? [25, 30, 25] : 60);
+      if (b.points > 0 && b.streak > bestStreak) bestStreak = b.streak;
     });
+    if (bestStreak >= 2) celebrateStreak(bestStreak);
+  }
+}
+
+function celebrateStreak(n) {
+  const flames = '🔥'.repeat(Math.min(n, 4));
+  showToast(`${flames} STREAK x${n}`, 'streak', 2400);
+  sfxStreak();
+  vibrate([20, 30, 20, 30, 60]);
+  const sb = document.querySelector('.scoreboard');
+  if (sb) {
+    sb.classList.remove('streak-glow');
+    void sb.offsetWidth;
+    sb.classList.add('streak-glow');
   }
 }
 
@@ -661,13 +1021,87 @@ function handleBasket(d) {
 function handleGameOver(d) {
   const w = d.red_score > d.blue_score ? 'Red' : d.red_score < d.blue_score ? 'Blue' : null;
   const wiz = d.leaderboard?.length ? d.leaderboard[0] : null;
+  const me = d.recap?.find(p => p.id === playerId);
+
+  let cardsHtml = '';
+  if (me) {
+    const best = me.best_click;
+    const bestEm = best ? (ACTION_MAP[best.action]?.emoji || '?') : '';
+    const top = me.top_action;
+    const topEm = top ? (ACTION_MAP[top.id]?.emoji || '?') : '';
+    cardsHtml = `<div class="recap-grid">
+      <div class="recap-card">
+        <div class="rc-label">Final Mojo</div>
+        <div class="rc-value">${me.score>0?'+':''}${me.score}</div>
+        <div class="rc-sub">${me.positive_clicks}/${me.clicks} clicks landed</div>
+      </div>
+      <div class="recap-card">
+        <div class="rc-label">Best Streak</div>
+        <div class="rc-value">${me.max_streak > 0 ? me.max_streak + '🔥' : '—'}</div>
+        <div class="rc-sub">${me.max_streak >= 3 ? 'On fire' : me.max_streak >= 2 ? 'Hot' : 'Try harder'}</div>
+      </div>
+      <div class="recap-card">
+        <div class="rc-label">MVP Click</div>
+        <div class="rc-value">${best ? bestEm + ' +' + best.points : '—'}</div>
+        <div class="rc-sub">${best ? `at ${esc(best.clock)} (${best.gap}s gap)` : 'No scoring clicks'}</div>
+      </div>
+      <div class="recap-card">
+        <div class="rc-label">Top Ritual</div>
+        <div class="rc-value">${top ? topEm + ' ' + (top.points>0?'+':'') + top.points : '—'}</div>
+        <div class="rc-sub">${top ? esc(ACTION_MAP[top.id]?.label || top.id) : 'No data'}</div>
+      </div>
+    </div>`;
+  }
+
   document.getElementById('game-over-area').innerHTML =
     `<div class="game-over-banner">
       <h2>${w ? w + ' Wins!' : "It's a Tie!"}</h2>
       <p>${d.red_score} \u2013 ${d.blue_score}</p>
       ${wiz ? `<p>Most magical: <b>${esc(wiz.name)}</b> (${wiz.score>0?'+':''}${wiz.score})</p>` : ''}
+      ${cardsHtml}
+      ${me ? `<div class="recap-actions">
+        <button class="recap-btn primary" onclick="copyShareCard()">Copy Mojo Card</button>
+      </div>` : ''}
     </div>`;
   if (clockInterval) clearInterval(clockInterval);
+  // Stash recap for the share button
+  window.__lastRecap = me;
+  window.__lastFinal = {red: d.red_score, blue: d.blue_score, winner: w};
+  // Final whistle
+  sfxBasket();
+  vibrate([60, 40, 60, 40, 120]);
+}
+
+function copyShareCard() {
+  const me = window.__lastRecap;
+  const final = window.__lastFinal || {};
+  if (!me) return;
+  const lines = [
+    `🏀 Superstition Lab — ${final.winner || 'Tie'} ${final.red ?? '?'}-${final.blue ?? '?'}`,
+    `${me.name} (${me.team.toUpperCase()}): ${me.score>0?'+':''}${me.score} mojo`,
+    me.best_click
+      ? `Best click: ${ACTION_MAP[me.best_click.action]?.emoji||''} +${me.best_click.points} (${me.best_click.gap}s gap)`
+      : 'No scoring clicks',
+    me.top_action
+      ? `Top ritual: ${ACTION_MAP[me.top_action.id]?.emoji||''} ${me.top_action.points>0?'+':''}${me.top_action.points}`
+      : '',
+    me.max_streak >= 2 ? `Best streak: ${me.max_streak}🔥` : '',
+  ].filter(Boolean);
+  const text = lines.join('\n');
+  const onCopied = () => { showToast('Copied!', 'positive', 1200); sfxScore(true); vibrate(20); };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(onCopied).catch(() => fallbackCopy(text, onCopied));
+  } else {
+    fallbackCopy(text, onCopied);
+  }
+}
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); cb && cb(); }
+  catch (e) { showToast('Copy failed', 'cooldown-toast', 1200); }
+  ta.remove();
 }
 
 // --- Leaderboard ---
