@@ -1,14 +1,14 @@
-# Sports Superstition Tracker
+# Sports Superstition Tracker — 60s Demo
 
-Track your superstitions during a live basketball game and see if your rituals actually affect the score. Multiplayer and mobile-first -- best experienced on a phone with friends.
+A simple social web app that mocks a 60-second basketball game and lets you click your superstitions (turn hat, sip beer, knock on wood) during play to see if your rituals actually correlate with your team scoring. Mobile-first, best with friends.
 
 ## How it works
 
-1. Join a game -- pick a name and pick Red or Blue team
-2. Someone clicks **Start Game** -- a simulated basketball game runs (4 quarters, 2 min each)
-3. While watching, click superstition buttons whenever you do a ritual (turn your cap, sip a beer, etc.)
+1. Join a game — pick a name and pick Red or Blue team
+2. Someone clicks **Start Game** — a deterministic 60-second scripted basketball game runs (8 baskets, same script every run for a clean demo)
+3. While watching, click one of the **3 superstition buttons** (Turn Hat 🧢, Sip Beer 🍺, Knock on Wood 🪵) whenever you do a ritual
 4. The system watches for baskets that happen within 10 seconds of your click
-5. Scoring is on a sliding scale: basket within 1s of your click = +10, within 10s = +1, linear in between
+5. Scoring curve: basket within 0.5s of your click = **+10**, linear decay to 0 at 10s
 6. If the *other* team scores after your click, you lose points on the same scale
 7. Leaderboard shows who has the most **magic power** and which superstitions are most effective
 
@@ -42,9 +42,15 @@ poetry run uvicorn app.main:app --reload --host 0.0.0.0
 
 Then open `http://<your-ip>:8000` on any phone or laptop on the same network.
 
+## Test
+
+```bash
+poetry run pytest
+```
+
 ## Tech
 
-- **Backend:** FastAPI + WebSockets (real-time multiplayer)
-- **Frontend:** Vanilla HTML/CSS/JS (single page, no build step, mobile-first)
-- **Game sim:** Random basket generation every 4-12 seconds
+- **Backend:** FastAPI + Server-Sent Events (one-way live updates) + HTTP POST for actions
+- **Frontend:** Vanilla HTML/CSS/JS (single page, no build step, mobile-first), `EventSource` for live state
+- **Game sim:** Deterministic 60-second script with 8 baskets — repeatable for demo purposes
 - **Package manager:** Poetry

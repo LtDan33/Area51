@@ -10,6 +10,13 @@ python = "^3.11"
 fastapi = ">=0.115.0,<1.0.0"
 uvicorn = {version = ">=0.30.0,<1.0.0", extras = ["standard"]}
 
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0,<9.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
